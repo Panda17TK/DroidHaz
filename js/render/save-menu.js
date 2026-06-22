@@ -90,7 +90,7 @@ export function mountSaveMenu(rootEl, { state, bus, uiCtl, confirm, slots, onLoa
         const stageStr = (m.mode === 'endless') ? 'ENDLESS' : ('STAGE ' + (s.stage | 0 || 1));
         info.innerHTML =
           '<span class="slot-name">' + m.id + ' <small>' + stageStr + '</small></span>' +
-          '<span class="slot-sub">WAVE ' + (s.wave | 0) + ' / SCORE ' + (s.score | 0) +
+          '<span class="slot-sub">WAVE ' + (s.wave | 0) + ' / 撃破 ' + (s.score | 0) +
             ' / ' + escapeHtml(s.weapon || '-') + ' / ' + fmtTime(s.playTimeSec | 0) + '</span>' +
           '<span class="slot-date">' + fmtDate(m.updatedAt) + '</span>';
         if (mode === 'save') info.addEventListener('click', () => doSave(m.id, true));

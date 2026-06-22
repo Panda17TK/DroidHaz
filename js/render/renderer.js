@@ -492,11 +492,13 @@ export function renderFrame(ctx, canvas, state) {
   // 原点中心の固定グラデをキャッシュし、プレイヤー位置へ translate して使う。
   ctx.globalCompositeOperation = 'multiply';
   ctx.save();
-  ctx.translate(state.player.x, state.player.y);
+  // LOW(determinism): プレイヤー本体は補間描画されるので、ビネット光源も補間位置に合わせる。
+  const vpx = rx(state.player, A), vpy = ry(state.player, A);
+  ctx.translate(vpx, vpy);
   ctx.fillStyle = radialAtOrigin(ctx, 60, 420,
     [[0, 'rgba(255,255,255,1)'], [1, 'rgba(0,0,0,0.55)']], 'vignette');
   // ワールド単位の可視範囲を塗る（スケール変換中なので viewW/viewH を使う）
-  ctx.fillRect(camX - state.player.x, camY - state.player.y, viewW, viewH);
+  ctx.fillRect(camX - vpx, camY - vpy, viewW, viewH);
   ctx.restore();
   ctx.globalCompositeOperation = 'source-over';
 

@@ -31,7 +31,7 @@ const ASSETS = [
   './js/render/view.js', './js/render/pause-menu.js', './js/render/save-menu.js',
   './js/render/settings-panel.js', './js/render/weapon-radial.js',
   './js/render/title-screen.js', './js/render/scores-menu.js', './js/render/continue-menu.js',
-  './js/services/audio.js', './js/services/storage.js', './js/services/kv.js',
+  './js/services/audio.js', './js/services/kv.js',
   './js/services/native.js',
   './js/state/binds.js', './js/state/data.js', './js/state/map.js', './js/state/maps.js',
   './js/state/state.js', './js/state/types.js', './js/state/upgrades.js', './js/state/stages.js',

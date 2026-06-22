@@ -25,10 +25,10 @@ export function updateSpawner(state, dt, bus, audio) {
     if (w.toSpawn <= 0 && countAlive(state) === 0 && state.timers.elapsed > C.firstWaveDelay) {
       enterIntermission(state, bus);
     }
-  } else if (w.phase === 'intermission') {
-    w.interT -= dt;
-    if (w.interT <= 0) startNextWave(state, bus);
   }
+  // 注: intermission 中はシミュレーションが停止する（isSimPaused）ため updateSpawner は呼ばれない。
+  // 旧コードの interT 自動進行は到達不能なデッドコードで、かつ pause 開閉時の二重進行の温床
+  // だったため削除した。次ウェーブはカード確定（'wave:choose'）からのみ進む。
 }
 
 export function startWave(state, n) {
