@@ -1,4 +1,5 @@
 // js/render/save-menu.js
+import { escapeHtml } from '../systems/scores.js';
 // REQ-TOUCH-2: セーブ/ロードのスロットUI（タッチ完結・固定3スロット）。
 // 'save' / 'load' overlay（DESIGN §0.2 stack）の最上位に応じてモードを切替える。
 // 確認は pause-menu の confirm overlay を共有（confirm() を注入）。
@@ -90,7 +91,7 @@ export function mountSaveMenu(rootEl, { state, bus, uiCtl, confirm, slots, onLoa
         info.innerHTML =
           '<span class="slot-name">' + m.id + ' <small>' + stageStr + '</small></span>' +
           '<span class="slot-sub">WAVE ' + (s.wave | 0) + ' / SCORE ' + (s.score | 0) +
-            ' / ' + (s.weapon || '-') + ' / ' + fmtTime(s.playTimeSec | 0) + '</span>' +
+            ' / ' + escapeHtml(s.weapon || '-') + ' / ' + fmtTime(s.playTimeSec | 0) + '</span>' +
           '<span class="slot-date">' + fmtDate(m.updatedAt) + '</span>';
         if (mode === 'save') info.addEventListener('click', () => doSave(m.id, true));
         else info.addEventListener('click', () => doLoad(m.id));
