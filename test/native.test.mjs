@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 const {
-  shouldAutoPause, androidBackAction,
+  shouldAutoPause, androidBackAction, onAndroidBack,
   hapticImpact, initNativeChrome, exitApp, isNativeAndroid, isNativePlatform,
 } = await import('../js/services/native.js');
 const { createUiState, pushOverlay } = await import('../js/core/ui-state.js');
@@ -90,4 +90,53 @@ test('hapticImpact / initNativeChrome / exitApp は例外を投げない（no-op
   assert.doesNotThrow(() => initNativeChrome({ background: '#0b0e13' }));
   assert.doesNotThrow(() => initNativeChrome());
   assert.doesNotThrow(() => exitApp());
+});
+
+// ===== HIGH-3: window.Capacitor ブリッジ経由でネイティブ機能が届く（旧: bare import で全滅） =====
+test('HIGH-3: ブリッジがあれば backButton 登録・ハプティクス・exit が届く', () => {
+  const rec = { events: [], impacts: [] };
+  globalThis.window = {
+    Capacitor: {
+      isNativePlatform: () => true,
+      getPlatform: () => 'android',
+      Plugins: {
+        App: {
+          addListener: (ev) => { rec.events.push(ev); return {}; },
+          exitApp: () => { rec.events.push('exit'); },
+        },
+        Haptics: { impact: (o) => { rec.impacts.push(o.style); } },
+      },
+    },
+  };
+  try {
+    assert.equal(isNativePlatform(), true);
+    assert.equal(isNativeAndroid(), true);
+    onAndroidBack(() => {});
+    hapticImpact('heavy');
+    exitApp();
+    assert.ok(rec.events.includes('backButton'), 'backButton を登録する');
+    assert.deepEqual(rec.impacts, ['HEAVY']);
+    assert.ok(rec.events.includes('exit'), 'exitApp を呼ぶ');
+  } finally {
+    delete globalThis.window;
+  }
+});
+
+// registerPlugin フォールバック（Plugins[name] 未登録でも registerPlugin で取得できる）
+test('HIGH-3: Plugins 未登録でも registerPlugin 経由で取得する', () => {
+  const rec = [];
+  globalThis.window = {
+    Capacitor: {
+      isNativePlatform: () => true,
+      getPlatform: () => 'android',
+      registerPlugin: (name) => (name === 'App'
+        ? { addListener: (ev) => { rec.push(ev); } } : {}),
+    },
+  };
+  try {
+    onAndroidBack(() => {});
+    assert.ok(rec.includes('backButton'));
+  } finally {
+    delete globalThis.window;
+  }
 });

@@ -26,3 +26,20 @@ export function setAppPhase(state, phase) {
   state.appPhase = phase;
   return state.appPhase;
 }
+
+// シミュレーションを止めるべきかの「唯一の述語」（純ロジック＝テスト可能）。
+// DESIGN §0.1: state.paused の所有者を 1 箇所に集約するため、main.js syncUi() は
+// これを唯一のソースとして state.paused を導出する。
+//   ・gameover            … 停止（リスタートまで）
+//   ・overlay 表示中       … 停止（pause/settings/save/… のスタック非空）
+//   ・ウェーブ間 intermission … 停止（強化カード選択中。カード確定まで凍結）
+//   ・開発者エディタ表示中  … 停止（dev のみ）
+export function isSimPaused(state) {
+  if (!state) return true;
+  if (state.gameOver) return true;
+  const ui = state.ui;
+  if (ui && ui.overlayStack && ui.overlayStack.length > 0) return true;
+  if (state.wave && state.wave.phase === 'intermission') return true;
+  if (state._devOpen) return true;
+  return false;
+}

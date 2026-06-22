@@ -1,10 +1,20 @@
 name: android-apk
 
-# Android デバッグ APK をビルドして配布する（リポジトリ直下が静的PWA＋Capacitor構成）。
-# 実行: main へ push、または Actions → "android-apk" → Run workflow。
+# Android アプリをビルドして配布する（リポジトリ直下が静的PWA＋Capacitor構成）。
+#  - main への push / 手動実行 … DEBUG APK を Actions artifact として上げる（Release は作らない）。
+#  - タグ v* の push          … 上記に加え、署名鍵が設定されていれば「署名付き release」
+#                               （APK + AAB）をビルドし、そのタグの GitHub Release に添付する。
+#                               鍵未設定なら未署名 debug APK を prerelease として添付（フォールバック）。
+#
+# 署名に必要な GitHub Secrets（Settings → Secrets and variables → Actions）:
+#   ANDROID_KEYSTORE_BASE64   … キーストア(.jks)を base64 した文字列（base64 -w0 my.jks）
+#   ANDROID_KEYSTORE_PASSWORD … keystore のパスワード
+#   ANDROID_KEY_ALIAS         … 鍵エイリアス
+#   ANDROID_KEY_PASSWORD      … 鍵パスワード
 on:
   push:
     branches: ["main"]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -18,35 +28,93 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "17" # Capacitor 6 / AGP 8 の基準（CAPACITOR.md と一致）
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
       - name: Install deps & build web (www/)
         run: |
-          npm install
+          npm ci
           npm run build
+
       - name: Generate Android project (Capacitor)
         run: npx cap add android
+
+      - name: Set Android version (versionName=package.json, versionCode=run number)
+        run: |
+          GRADLE=android/app/build.gradle
+          VER=$(node -p "require('./package.json').version")
+          sed -i -E "s/versionName \"[^\"]*\"/versionName \"$VER\"/" "$GRADLE"
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/" "$GRADLE"
+          echo "versionName=$VER versionCode=${{ github.run_number }}"
+
+      # 署名鍵が設定されているか（secrets は if: で直接使えないため output に落とす）。
+      - name: Detect signing availability
+        id: signing
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ---- DEBUG APK（常時。動作確認・配布テスト用の artifact）----
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
-      - name: Rename APK
+      - name: Stage debug APK
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/debug/app-debug.apk dist/droidhaz-debug.apk
-      - name: Upload APK artifact
+      - name: Upload debug APK artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: droidhaz-debug.apk
           path: dist/droidhaz-debug.apk
           if-no-files-found: warn
-      - name: Publish APK to GitHub Release (v1.0.0, prerelease)
+
+      # ---- 署名付き RELEASE（タグ push かつ鍵あり）----
+      - name: Decode keystore
+        if: startsWith(github.ref, 'refs/tags/') && steps.signing.outputs.available == 'true'
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+      - name: Inject release signingConfig
+        if: startsWith(github.ref, 'refs/tags/') && steps.signing.outputs.available == 'true'
+        run: node scripts/android-release-signing.mjs android/app/build.gradle
+      - name: Build signed release (APK + AAB)
+        if: startsWith(github.ref, 'refs/tags/') && steps.signing.outputs.available == 'true'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace
+      - name: Stage signed artifacts
+        if: startsWith(github.ref, 'refs/tags/') && steps.signing.outputs.available == 'true'
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk dist/droidhaz-release.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab dist/droidhaz-release.aab
+      - name: Upload signed artifacts
+        if: startsWith(github.ref, 'refs/tags/') && steps.signing.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: droidhaz-release
+          path: dist/droidhaz-release.*
+          if-no-files-found: warn
+
+      # ---- GitHub Release（タグ push 時）----
+      #  署名ありなら release APK+AAB を正式リリースとして、無ければ debug APK を prerelease として添付。
+      - name: Publish GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: DroidHaz v1.0.0
           body_path: RELEASE_NOTES.md
-          prerelease: true
-          files: dist/droidhaz-debug.apk
+          prerelease: ${{ steps.signing.outputs.available != 'true' }}
+          fail_on_unmatched_files: false
+          files: |
+            dist/droidhaz-release.apk
+            dist/droidhaz-release.aab
+            dist/droidhaz-debug.apk

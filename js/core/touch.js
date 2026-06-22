@@ -57,6 +57,13 @@ export function normalizeStick({ dx, dy, radius, deadZone, maxZone }) {
   return { x: nx * mag, y: ny * mag, magnitude: mag, active: true };
 }
 
+// HIGH-2: 押下点(origin)からの相対変位でスティック出力を作る純関数。
+//   入力計算の原点を「実際に触れた点」に固定することで、画面端を押しても押下時は
+//   変位ゼロ＝中立になり、無操作での全開入力（暴発）を防ぐ。視覚ベースの clamp 位置とは独立。
+export function stickInputFromOrigin(touchX, touchY, originX, originY, R, deadZone) {
+  return normalizeStick({ dx: touchX - originX, dy: touchY - originY, radius: R, deadZone, maxZone: 1 });
+}
+
 // REQ-DISP-2: スティックの操作中心をセーフエリア内側に収める（純関数）。
 //   base 半径 R を考慮し、(x,y) を [inset+R, viewport-inset-R] に clamp。
 //   画面が極端に狭く範囲が反転する場合は中点を返す。
@@ -89,6 +96,9 @@ export function createTouchControls(root, input, api, cfg) {
   const layer = document.createElement('div');
   layer.className = 'touch-controls';
 
+  // 各スティックゾーンの release() を集約（外部 reset() 用：MEDIUM touch 修正）。
+  const zoneReleases = [];
+
   const BASE_R = 60; // 基準可動半径(px)。サイズ設定で拡縮
   const getR = () => BASE_R * cfg.scale;
 
@@ -101,7 +111,9 @@ export function createTouchControls(root, input, api, cfg) {
     base.appendChild(knob);
     z.appendChild(base);
 
-    let pid = null, cx = 0, cy = 0;
+    // cx,cy = 視覚ベース中心（セーフエリア内に clamp）。ox,oy = 入力原点（実際の押下点）。
+    // HIGH-2: 入力は ox,oy からの相対変位で計算し、cx,cy（端で内側へ寄る）は描画専用にする。
+    let pid = null, cx = 0, cy = 0, ox = 0, oy = 0;
 
     function release() {
       pid = null;
@@ -110,18 +122,20 @@ export function createTouchControls(root, input, api, cfg) {
       if (kind === 'move') { move.active = false; move.x = 0; move.y = 0; }
       else { aim.active = false; aim.x = 0; aim.y = 0; keys['k'] = false; }
     }
+    zoneReleases.push(release);
 
     function update(e) {
       const R = getR();
       const r = z.getBoundingClientRect();
-      const dx = (e.clientX - r.left) - cx;
-      const dy = (e.clientY - r.top) - cy;
+      // 入力は押下点(ox,oy)からの相対変位。ノブ描画は視覚ベース(cx,cy)中心からの偏位で行う。
+      const dx = (e.clientX - r.left) - ox;
+      const dy = (e.clientY - r.top) - oy;
       const len = Math.hypot(dx, dy);
       const cl = Math.min(len, R);
       const nx = len ? dx / len : 0;
       const ny = len ? dy / len : 0;
       knob.style.transform = `translate(calc(-50% + ${nx * cl}px), calc(-50% + ${ny * cl}px))`;
-      // REQ-CTRL-2: deadZone を踏まえて 0..1 に再マップ（純関数）
+      // REQ-CTRL-2: deadZone を踏まえて 0..1 に再マップ（純関数）。押下時は変位0＝中立。
       const st = normalizeStick({ dx, dy, radius: R, deadZone: cfg.deadZone || 0.18, maxZone: 1 });
 
       if (kind === 'move') {
@@ -139,7 +153,9 @@ export function createTouchControls(root, input, api, cfg) {
       pid = e.pointerId;
       try { z.setPointerCapture(pid); } catch (_e) {}
       const r = z.getBoundingClientRect();
-      // REQ-DISP-2: 操作中心をセーフエリア内に clamp（ノッチ/ホームバー回避）
+      // HIGH-2: 入力原点 = 実際の押下点（ここから変位ゼロで始める＝端でも暴発しない）。
+      ox = (e.clientX - r.left); oy = (e.clientY - r.top);
+      // REQ-DISP-2: 視覚ベース中心はセーフエリア内に clamp（ノッチ/ホームバーでリングが切れない）。
       const vw = (typeof window !== 'undefined' && window.innerWidth) || r.width;
       const vh = (typeof window !== 'undefined' && window.innerHeight) || r.height;
       const sc = clampStickCenter(e.clientX, e.clientY, getR(), readSafeInsets(), vw, vh);
@@ -289,7 +305,10 @@ export function createTouchControls(root, input, api, cfg) {
   // 表示/非表示（REQ-TOUCH-4）。
   function setVisible(v) { layer.style.display = v ? '' : 'none'; }
 
+  // 全スティックを中立化（pid/knob/move/aim をクリア）。overlay 開始時に main.js が呼ぶ。
+  function reset() { for (const r of zoneReleases) { try { r(); } catch (_e) {} } }
+
   apply();
   root.appendChild(layer);
-  return { el: layer, applySettings, setVisible };
+  return { el: layer, applySettings, setVisible, reset };
 }

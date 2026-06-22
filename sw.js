@@ -2,7 +2,17 @@
  * アプリシェル（HTML/JS/CSS/アイコン）をキャッシュしてオフライン起動を可能にする。
  * すべて相対パス＝GitHub Pages の任意サブパスでも動作する。
  */
-const CACHE = 'droidhaz-v16';
+const CACHE = 'droidhaz-v18';
+
+// install 時に必ず揃えるアプリシェル（これだけは原子的に addAll。失敗時は install を
+// 失敗させ、直前の正常な SW/キャッシュを温存する）。残りの ASSETS はベストエフォート。
+const CRITICAL = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './css/game.css',
+  './js/main.js',
+];
 
 const ASSETS = [
   './',
@@ -28,14 +38,22 @@ const ASSETS = [
   './js/systems/ai.js', './js/systems/attacks.js', './js/systems/combat-core.js',
   './js/systems/combat.js', './js/systems/enemies.js', './js/systems/flowfield.js',
   './js/systems/fx.js', './js/systems/items.js', './js/systems/los.js',
-  './js/systems/melee.js', './js/systems/physics.js', './js/systems/projectiles.js',
-  './js/systems/save-local.js', './js/systems/spatial.js', './js/systems/spawner.js',
+  './js/systems/melee.js', './js/systems/melee-combo.js', './js/systems/physics.js',
+  './js/systems/projectiles.js', './js/systems/save-local.js', './js/systems/spatial.js',
+  './js/systems/spawner.js', './js/systems/status.js',
   './js/systems/tiles.js', './js/systems/autoaim.js', './js/systems/progress.js',
   './js/systems/scores.js',
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).catch(() => {}).then(() => self.skipWaiting()));
+  // 重要シェルは原子的に（失敗→install reject→旧 SW 温存）。残りはベストエフォートで
+  // 事前キャッシュ（一部の 404/瞬断で更新全体を止めない）。成功時のみ skipWaiting。
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    await c.addAll(CRITICAL); // ここが失敗したら waitUntil が reject し install 失敗（安全側）
+    await Promise.allSettled(ASSETS.map((u) => c.add(u)));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (e) => {
@@ -45,15 +63,26 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// stale-while-revalidate：キャッシュがあれば即返しつつ裏で更新。これにより、デプロイ後の
+// 更新が CACHE 文字列の手動 bump を忘れても次回ロードで反映される（cache-first の弱点を解消）。
+// 無ければネットワーク取得し、成功時のみキャッシュする（エラー/opaque は保存しない）。
+async function staleWhileRevalidate(req, e) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(req);
+  const fetching = fetch(req).then((res) => {
+    if (res && res.ok && res.type === 'basic') { cache.put(req, res.clone()).catch(() => {}); }
+    return res;
+  }).catch(() => null);
+  if (cached) { e.waitUntil(fetching.catch(() => {})); return cached; }
+  const net = await fetching;
+  return net || Response.error();
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
-  // 静的アセットは cache-first（無ければ取得してキャッシュ）
-  e.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      const copy = res.clone();
-      caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-      return res;
-    }).catch(() => hit))
-  );
+  let url;
+  try { url = new URL(req.url); } catch (_e) { return; }
+  if (url.origin !== self.location.origin) return; // 同一オリジンの GET のみ扱う
+  e.respondWith(staleWhileRevalidate(req, e));
 });

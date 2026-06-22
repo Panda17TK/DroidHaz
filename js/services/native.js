@@ -11,20 +11,28 @@
 
 import { topOverlay } from '../core/ui-state.js';
 
-let capAppPromise = null;
+// HIGH-3: bare-specifier の動的 import（import('@capacitor/...')）は WebView で解決できず、
+// バンドラ無し構成では実 APK 上でも常に失敗していた（ネイティブ機能が全滅）。
+// Capacitor はネイティブ起動時に window.Capacitor（registerPlugin/Plugins/isNativePlatform）を
+// グローバル注入するため、ブリッジ経由でプラグインを「同期」取得する（import 不要・バンドラ不要）。
+function capBridge() {
+  try {
+    const cap = (typeof window !== 'undefined') && window.Capacitor;
+    if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return null;
+    return cap;
+  } catch (_e) { return null; }
+}
 
-// @capacitor/app（App プラグイン）を 1 度だけ動的 import。非ネイティブ/不在は null。
-function getCapApp() {
-  if (capAppPromise) return capAppPromise;
-  capAppPromise = (async () => {
-    try {
-      const core = await import('@capacitor/core').catch(() => null);
-      if (!core || !core.Capacitor || !core.Capacitor.isNativePlatform || !core.Capacitor.isNativePlatform()) return null;
-      const mod = await import('@capacitor/app').catch(() => null);
-      return (mod && mod.App) ? mod.App : null;
-    } catch (_e) { return null; }
-  })();
-  return capAppPromise;
+// 名前で Capacitor プラグインのプロキシを得る（非ネイティブ/不在は null）。
+//   既に登録済みなら Plugins[name]、無ければ registerPlugin(name) でブリッジプロキシを生成。
+function getPlugin(name) {
+  const cap = capBridge();
+  if (!cap) return null;
+  try {
+    if (cap.Plugins && cap.Plugins[name]) return cap.Plugins[name];
+    if (typeof cap.registerPlugin === 'function') return cap.registerPlugin(name);
+  } catch (_e) {}
+  return null;
 }
 
 // 同期のベストエフォート判定（UI 分岐用。確実な判定は getCapApp 経由）。
@@ -46,9 +54,8 @@ export function isNativeAndroid() {
 
 // アプリ終了（Native のみ。Web は no-op）。
 export function exitApp() {
-  getCapApp().then((App) => {
-    if (App && App.exitApp) { try { App.exitApp(); } catch (_e) {} }
-  }).catch(() => {});
+  const App = getPlugin('App');
+  if (App && App.exitApp) { try { App.exitApp(); } catch (_e) {} }
 }
 
 // REQ-NATIVE-4 純ロジック：いま自動ポーズすべきか（playing 中のみ）。
@@ -68,10 +75,10 @@ export function onAppBackground(handler) {
     }
   } catch (_e) {}
   // Native（任意）
-  getCapApp().then((App) => {
-    if (!App || !App.addListener) return;
+  const App = getPlugin('App');
+  if (App && App.addListener) {
     try { App.addListener('appStateChange', (st) => { if (st && st.isActive === false) handler(); }); } catch (_e) {}
-  }).catch(() => {});
+  }
 }
 
 // REQ-NATIVE-2 純ロジック：Android Back で何をすべきかを返す。
@@ -90,40 +97,21 @@ export function androidBackAction(ui) {
 // Android のハードウェア戻るボタンを購読（Web では never fire = no-op）。
 export function onAndroidBack(handler) {
   if (typeof handler !== 'function') return;
-  getCapApp().then((App) => {
-    if (!App || !App.addListener) return;
+  const App = getPlugin('App');
+  if (App && App.addListener) {
     try { App.addListener('backButton', () => handler()); } catch (_e) {}
-  }).catch(() => {});
-}
-
-// ネイティブのときだけプラグインを動的 import（Web/不在は null）。
-async function loadIfNative(name) {
-  try {
-    const core = await import('@capacitor/core').catch(() => null);
-    if (!core || !core.Capacitor || !core.Capacitor.isNativePlatform || !core.Capacitor.isNativePlatform()) return null;
-    return await import(name).catch(() => null);
-  } catch (_e) { return null; }
-}
-
-let capHapticsPromise = null;
-function getCapHaptics() {
-  if (!capHapticsPromise) capHapticsPromise = loadIfNative('@capacitor/haptics');
-  return capHapticsPromise;
+  }
 }
 
 // REQ-NATIVE-1: 触覚フィードバック（Native のみ。Web/非対応は no-op・例外なし）。
-//   style: 'light' | 'medium' | 'heavy'
+//   style: 'light' | 'medium' | 'heavy'（ImpactStyle の enum 値は文字列なので直接渡す）
 export function hapticImpact(style) {
-  getCapHaptics().then((mod) => {
-    if (!mod || !mod.Haptics || !mod.Haptics.impact) return;
-    try {
-      const S = mod.ImpactStyle || {};
-      const s = (style === 'heavy') ? (S.Heavy || 'HEAVY')
-              : (style === 'light') ? (S.Light || 'LIGHT')
-              : (S.Medium || 'MEDIUM');
-      mod.Haptics.impact({ style: s });
-    } catch (_e) {}
-  }).catch(() => {});
+  const Haptics = getPlugin('Haptics');
+  if (!Haptics || !Haptics.impact) return;
+  try {
+    const s = (style === 'heavy') ? 'HEAVY' : (style === 'light') ? 'LIGHT' : 'MEDIUM';
+    Haptics.impact({ style: s });
+  } catch (_e) {}
 }
 
 // REQ-NATIVE-3: 起動時のステータスバー/スプラッシュ整え（Native のみ。Web は no-op）。
@@ -132,18 +120,16 @@ export function hapticImpact(style) {
 //   - SplashScreen: 初期化完了後に hide()。失敗時フェイルセーフとして遅延 hide も試みる。
 export function initNativeChrome(opts) {
   const bg = (opts && opts.background) || '#0b0e13';
-  loadIfNative('@capacitor/status-bar').then((mod) => {
-    if (!mod || !mod.StatusBar) return;
-    const SB = mod.StatusBar, Style = mod.Style || {};
-    try { SB.setStyle && SB.setStyle({ style: Style.Dark || 'DARK' }); } catch (_e) {}
+  const SB = getPlugin('StatusBar');
+  if (SB) {
+    try { SB.setStyle && SB.setStyle({ style: 'DARK' }); } catch (_e) {}
     try { SB.setBackgroundColor && SB.setBackgroundColor({ color: bg }); } catch (_e) {}
-  }).catch(() => {});
-
-  loadIfNative('@capacitor/splash-screen').then((mod) => {
-    if (!mod || !mod.SplashScreen || !mod.SplashScreen.hide) return;
-    const hide = () => { try { mod.SplashScreen.hide(); } catch (_e) {} };
+  }
+  const SS = getPlugin('SplashScreen');
+  if (SS && SS.hide) {
+    const hide = () => { try { SS.hide(); } catch (_e) {} };
     hide();
     // フェイルセーフ：何らかの理由で残った場合に備えて少し後にも hide。
     try { setTimeout(hide, 3000); } catch (_e) {}
-  }).catch(() => {});
+  }
 }

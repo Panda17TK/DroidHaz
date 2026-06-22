@@ -1,3 +1,5 @@
+import { escapeHtml } from '../systems/scores.js';
+
 export function mountHUD(hud, toast, state, bus) {
   // 静的な構造を一度だけ構築（バーは width だけ毎フレーム更新）
   hud.innerHTML =
@@ -42,7 +44,7 @@ export function mountHUD(hud, toast, state, bus) {
 
     lineEl.innerHTML =
       '<span class="hud-wave">' + waveTxt + '</span>' +
-      '　武器: <b>' + (w.name || '') + '</b> <b>' + magTxt + '</b>' +
+      '　武器: <b>' + escapeHtml(w.name || '') + '</b> <b>' + magTxt + '</b>' +
       '　予備: 9mm ' + (inv.ammo9 | 0) + ' / 12g ' + (inv.ammo12 | 0) +
       ' / Beam ' + (inv.ammoBeam | 0) + ' / Nade ' + (inv.ammoNade | 0) +
       '<br>時間: <b>' + fmtTime(elapsed) + '</b>' +

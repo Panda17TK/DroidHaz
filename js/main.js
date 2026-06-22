@@ -2,7 +2,7 @@ import { DPR, MAX_DT, FIXED_DT } from './core/constants.js';
 import { loadConfig, CONFIG } from './core/config.js';
 import { createEventBus } from './core/events.js';
 import { createInput } from './core/input.js';
-import { mountDevEditor } from './render/dev-editor.js';
+import { mountDevEditor, isDevEnabled } from './render/dev-editor.js';
 import { createAudio } from './services/audio.js';
 import { createStorage } from './services/storage.js';
 import { initKv } from './services/kv.js';
@@ -14,7 +14,7 @@ import { buildMobGrid } from './systems/spatial.js';
 import { updateAI } from './systems/ai.js';
 import { updateTiles } from './systems/tiles.js';
 import { updateItems } from './systems/items.js';
-import { updateSpawner, startWave } from './systems/spawner.js';
+import { updateSpawner, startWave, startNextWave } from './systems/spawner.js';
 import { updateCombat, reload, placeWallFront, switchMelee, cycleMelee } from './systems/combat.js';
 import { updateFX } from './systems/fx.js';
 import { createTouchControls, shouldShowTouchUi, readTouchEnv } from './core/touch.js';
@@ -35,7 +35,7 @@ import { mountWeaponRadial } from './render/weapon-radial.js';
 import { mountTitleScreen } from './render/title-screen.js';
 import { mountScoresMenu } from './render/scores-menu.js';
 import { mountContinueMenu } from './render/continue-menu.js';
-import { setAppPhase, isPlaying } from './core/app-state.js';
+import { setAppPhase, isPlaying, isSimPaused } from './core/app-state.js';
 import { readProgress, writeProgress, markStageReached } from './systems/progress.js';
 import { stageDef, STAGES, STAGE_WAVES, STAGE_MAX } from './state/stages.js';
 import {
@@ -55,8 +55,10 @@ if (!canvas) {
   if (!ctx2d) console.error('[INIT] 2Dコンテキストの取得に失敗');
 
   // 永続ストレージ初期化（ネイティブでは Preferences → localStorage を補完）。
-  // 非同期だが await せず開始：ロード操作（Lキー）は起動より十分後のため間に合う。
-  try { initKv(); } catch (_e) {}
+  // 非同期だが起動描画は待たせない。hydrate 完了後に起動時の読取り（progress/セーブ/
+  // スコア）をやり直す（HIGH-4）。kvReady でその完了を待ち合わせる。
+  let kvReady;
+  try { kvReady = initKv(); } catch (_e) { kvReady = Promise.resolve(false); }
 
   // --- DPR リサイズ ---
   function fitCanvas() {
@@ -117,8 +119,13 @@ if (!canvas) {
   mountGameOver(document.getElementById('overlay'), bus, state);
   mountUpgrades(document.getElementById('upgrade-overlay'), bus, state);
   mountDevEditor(document.getElementById('dev-overlay'), bus, state);
+  // 開発者モードは本番(APK/Pages)では既定で無効。`?dev=1` か localStorage('arena_dev')==='1'
+  // のときだけ DEV ボタン/`キーを有効化する（チート/エディタの本番同梱を排除）。
   const devBtn = document.getElementById('dev-btn');
-  if (devBtn) devBtn.addEventListener('click', () => bus.emit('dev:toggle'));
+  if (devBtn) {
+    if (isDevEnabled()) devBtn.addEventListener('click', () => bus.emit('dev:toggle'));
+    else devBtn.style.display = 'none';
+  }
 
   // --- UI 状態機械（overlay stack：DESIGN §0.1/0.2）---
   state.ui = createUiState();
@@ -136,7 +143,10 @@ if (!canvas) {
 
   // overlay stack の変更を state.paused と DOM に反映する唯一の同期点。
   function syncUi() {
-    state.paused = isUiPaused(state.ui) || state.gameOver;
+    state.paused = isSimPaused(state); // 唯一の導出点（overlay / gameover / intermission / dev）
+    // MEDIUM(touch): 停止に入ったらタッチスティックを解放（ドラッグ中に overlay が開いて
+    // pointerup が来ず pid/knob が stale → 再開後にスティックが効かない問題を防ぐ）。
+    if (state.paused && touchCtl && touchCtl.reset) touchCtl.reset();
     for (const v of uiViews) v.render(state.ui);
     // 閉じた直後の 1 フレームは hold 入力をリセット（再開時の暴発防止）
     if (consumeResumeGuard(state.ui) && !isUiPaused(state.ui)) neutralizeGameInput();
@@ -408,11 +418,26 @@ if (!canvas) {
     }
   });
 
+  // HIGH-1: ウェーブ間 intermission の開始/終了を state.paused に反映する単一点。
+  // intermission 突入時に停止を導出（強化カードが出ている間は凍結）。
+  bus.on('wave:intermission', () => { syncUi(); });
+  // カード確定 → 次ウェーブを「ここだけ」で進め、停止を解除する（二重進行防止）。
+  bus.on('wave:choose', () => { startNextWave(state, bus); syncUi(); });
+
   // リスタート：現在のモードのまま、ステージ1の先頭から作り直す。
   bus.on('game:restart', () => {
     beginRun({ mode: state.mode, stage: 1 });
     bus.emit('ui:toast', 'Restart');
   });
+
+  // HIGH-4: hydrate（Preferences→localStorage 復元）の完了後に、起動時に読んだ
+  // progress/セーブ/スコアをやり直す。OS が localStorage を退避していても同一起動で反映。
+  Promise.resolve(kvReady).then((ready) => {
+    if (!ready) return;
+    progress = readProgress();
+    if (progress.lastMode) state.mode = progress.lastMode;
+    try { titleView.render(state); } catch (_e) {}
+  }).catch(() => {});
 
   // --- ループ ---
   let last = performance.now();
@@ -456,7 +481,10 @@ if (!canvas) {
       state.gameOver = true;
       pushOverlay(state.ui, 'gameover'); // 最下位固定。pause を積めなくする
       syncUi();                          // state.paused = true（UI または gameOver）
-      const timeMs = Math.max(0, performance.now() - state.runStart);
+      // MEDIUM(loop): スコアの生存時間は実時間(wall-clock)ではなくシミュレーション時間で計る。
+      // 低fps/スロー/ヒットストップで wall-clock が過大計上され端末性能でリーダーボードが
+      // 不公平になるのを防ぐ（waves を実際に駆動している sim 時計 = state.timers.elapsed）。
+      const timeMs = Math.max(0, Math.round(((state.timers && state.timers.elapsed) || 0) * 1000));
       state.stats.timeMs = timeMs;
       bus.emit('game:over', { reason: 'death', timeMs });
     }
@@ -484,8 +512,8 @@ if (!canvas) {
       // ステージバナー演出タイマ（描画用・実時間）
       if (state.stageBanner) { state.stageBanner.t += dt; if (state.stageBanner.t >= state.stageBanner.life) state.stageBanner = null; }
 
-      // overlay 表示中・タイトル中はゲーム操作入力を破棄（§0.3 / §8.0.1）。
-      if (isUiPaused(state.ui) || !isPlaying(state)) neutralizeGameInput();
+      // 停止中（overlay/intermission/dev）・タイトル中はゲーム操作入力を破棄（§0.3 / §8.0.1）。
+      if (!isPlaying(state) || state.paused) neutralizeGameInput();
 
       // シミュレーションは playing フェーズ かつ 非ポーズ のときだけ進める（§8.0.1）。
       if (isPlaying(state) && !state.paused) {
