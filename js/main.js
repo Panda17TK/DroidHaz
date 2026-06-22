@@ -4,7 +4,6 @@ import { createEventBus } from './core/events.js';
 import { createInput } from './core/input.js';
 import { mountDevEditor, isDevEnabled } from './render/dev-editor.js';
 import { createAudio } from './services/audio.js';
-import { createStorage } from './services/storage.js';
 import { initKv } from './services/kv.js';
 import { createInitialState, resetState } from './state/state.js';
 import { setupMap } from './state/map.js';
@@ -80,7 +79,6 @@ if (!canvas) {
   const bus     = createEventBus();
   const input   = createInput(window);
   const audio   = createAudio();
-  const storage = createStorage('nobihaza_like_save'); // 互換用（今は未使用）
 
   // --- bus: SE ---
   bus.on('sfx', (name) => { try { audio.sfx(name); } catch (_e) {} });
@@ -383,7 +381,8 @@ if (!canvas) {
   // --- 回転/リサイズ（REQ-UI-2）---
   // canvas は ResizeObserver で追従し、ズームは毎フレーム computeView で再計算、
   // スティック base は指追従なので再計算不要。回転直後の入力暴発のみ中立化する。
-  function onViewportChange() { fitCanvas(); neutralizeGameInput(); }
+  // 回転/リサイズ時は入力を中立化し、保持中のタッチスティックも解放する（LOW: 再クランプ漏れ防止）。
+  function onViewportChange() { fitCanvas(); neutralizeGameInput(); if (touchCtl && touchCtl.reset) touchCtl.reset(); }
   addEventListener('orientationchange', onViewportChange);
   addEventListener('resize', onViewportChange);
 
@@ -517,7 +516,9 @@ if (!canvas) {
 
       // シミュレーションは playing フェーズ かつ 非ポーズ のときだけ進める（§8.0.1）。
       if (isPlaying(state) && !state.paused) {
-        // ===== 固定タイムステップ蓄積（決定論・トンネリング抑止）=====
+        // ===== 固定タイムステップ蓄積（フレームレート非依存・トンネリング抑止）=====
+        // 注: 各ステップ幅は固定だが、シム内で未シードの Math.random を使うためリプレイ的な
+        //     完全再現性（厳密な決定論）はない。ここでの不変条件は「描画レートに依らず同じ歩進」。
         accumulator += dt * timeScale;
         let steps = 0;
         while (accumulator >= FIXED_DT && steps < MAX_STEPS) {
