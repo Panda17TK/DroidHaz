@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { normalizeStick } = await import('../js/core/touch.js');
+const { normalizeStick, stickInputFromOrigin } = await import('../js/core/touch.js');
 
 const R = 60;
 
@@ -50,4 +50,19 @@ test('deadZone 直上から 0 にリマップされる', () => {
   // raw = deadZone ちょうど → magnitude ≈ 0
   const s = normalizeStick({ dx: R * 0.18, dy: 0, radius: R, deadZone: 0.18, maxZone: 1 });
   assert.ok(s.magnitude < 1e-6, `mag=${s.magnitude}`);
+});
+
+// HIGH-2: 入力原点を「実際の押下点」に固定するので、画面端を押した瞬間でも変位0＝中立。
+test('HIGH-2: 押下点と同座標（押した瞬間）は中立＝暴発しない', () => {
+  for (const [x, y] of [[5, 700], [0, 0], [1280, 720], [639, 359]]) {
+    const s = stickInputFromOrigin(x, y, x, y, R, 0.18);
+    assert.equal(s.active, false, `(${x},${y}) で暴発`);
+    assert.equal(s.magnitude, 0);
+  }
+});
+
+test('HIGH-2: 押下点から十分離せば通常どおり active', () => {
+  const s = stickInputFromOrigin(5 + 40, 700, 5, 700, R, 0.18);
+  assert.equal(s.active, true);
+  assert.ok(s.magnitude > 0);
 });
