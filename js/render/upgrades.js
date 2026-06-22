@@ -3,7 +3,6 @@
 // 'wave:intermission' を受けてカード3枚を表示し、選択で 'wave:choose' を emit。
 
 import { applyUpgrade, upgradeDesc } from '../state/upgrades.js';
-import { startNextWave } from '../systems/spawner.js';
 
 export function mountUpgrades(overlayEl, bus, state) {
   if (!overlayEl) return;
@@ -12,12 +11,14 @@ export function mountUpgrades(overlayEl, bus, state) {
 
   function close() { overlayEl.classList.add('hidden'); }
 
+  // 強化確定 → 'wave:choose' を emit（次ウェーブ進行と paused 解除は main.js が単一点で行う）。
+  // HIGH-1: かつて state.paused を直接書き、startNextWave も直呼びしていたが、
+  // pause 開閉での paused clobber → カード裏でのシム再開＆ウェーブ二重進行を招いた。
   function choose(id) {
     applyUpgrade(state, id);
     bus.emit('upgrade:chosen', { id }); // 強化確定（ハプティクス等の演出フック）
     close();
-    state.paused = false;
-    startNextWave(state, bus);
+    bus.emit('wave:choose', { id });    // 次ウェーブへ（main.js が startNextWave + syncUi）
   }
 
   bus.on('wave:intermission', (payload) => {
@@ -40,7 +41,8 @@ export function mountUpgrades(overlayEl, bus, state) {
       });
     }
     overlayEl.classList.remove('hidden');
-    state.paused = true; // 選択中は時間を止める（恒久強化をじっくり選べる）
+    // 停止は main.js が 'wave:intermission' を受けて syncUi()→isSimPaused() で導出する
+    // （state.paused をここで直接書かない＝単一所有を守る）。
   });
 
   // リスタート時は閉じる

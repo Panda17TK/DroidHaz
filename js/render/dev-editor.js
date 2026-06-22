@@ -12,22 +12,38 @@ import { CONFIG, saveConfig, resetConfig, exportConfig, importConfig } from '../
 import { ATTACK_TYPES } from '../systems/attacks.js';
 import { makeMobFromKey } from '../systems/enemies.js';
 import { startWave } from '../systems/spawner.js';
+import { escapeHtml } from '../systems/scores.js';
 
 const TIER_ATTACK_LIMIT = { normal: 2, midboss: 5, boss: 10 };
 
+// 開発者モードを有効にしてよいか（本番=APK/Pages では既定で無効）。
+//  明示オプトインのみ: URL `?dev=1` か localStorage('arena_dev')==='1'。
+//  ※ Capacitor は androidScheme:https で hostname='localhost' になるため hostname 判定は使わない
+//    （本番 APK でチートが開いてしまうのを避ける）。
+export function isDevEnabled() {
+  try {
+    if (typeof location !== 'undefined' && /[?&]dev=1(?:&|$)/.test(location.search || '')) return true;
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('arena_dev') === '1') return true;
+  } catch (_e) {}
+  return false;
+}
+
 export function mountDevEditor(overlayEl, bus, state) {
   if (!overlayEl) return;
+  // 本番では一切マウントしない（チート/エディタの同梱を排除）。
+  if (!isDevEnabled()) { overlayEl.classList.add('hidden'); return; }
   let open = false;
 
   function setOpen(v) {
     open = v;
+    state._devOpen = v; // isSimPaused() がこれを見て停止を導出する（単一所有を守る）
     overlayEl.classList.toggle('hidden', !open);
     if (open) { state._devPausedPrev = state.paused; state.paused = true; render(); }
     else { state.paused = state._devPausedPrev || false; }
   }
   function toggle() { setOpen(!open); }
 
-  // バッククォートで開閉
+  // バッククォートで開閉（dev 有効時のみ登録）
   addEventListener('keydown', (e) => {
     if (e.key === '`' || e.key === 'Backquote' || e.code === 'Backquote') { e.preventDefault(); toggle(); }
   });
@@ -100,7 +116,7 @@ export function mountDevEditor(overlayEl, bus, state) {
     Object.keys(CONFIG.enemies).forEach((key) => {
       const def = CONFIG.enemies[key];
       const wrap = el('div', 'dev-enemy');
-      wrap.appendChild(el('div', 'dev-enemy-name', `${def.name || key} <small>[${def.tier || 'normal'}]</small>`));
+      wrap.appendChild(el('div', 'dev-enemy-name', `${escapeHtml(def.name || key)} <small>[${escapeHtml(def.tier || 'normal')}]</small>`));
       // 基本ステータス
       ['hp', 'speed', 'w', 'h', 'seeRange', 'contactKB'].forEach((k) => {
         if (typeof def[k] === 'number') wrap.appendChild(numRow(def, k, k));
@@ -133,7 +149,7 @@ export function mountDevEditor(overlayEl, bus, state) {
     const box = el('div', 'dev-section', '<h3>武器</h3>');
     CONFIG.weapons.forEach((w) => {
       const wrap = el('div', 'dev-enemy');
-      wrap.appendChild(el('div', 'dev-enemy-name', w.name || w.id));
+      wrap.appendChild(el('div', 'dev-enemy-name', escapeHtml(w.name || w.id || '')));
       ['dmg', 'fireRate', 'magSize', 'spread', 'pellets'].forEach((k) => {
         if (typeof w[k] === 'number') wrap.appendChild(numRow(w, k, k));
       });
