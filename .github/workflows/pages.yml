@@ -1,6 +1,8 @@
 name: deploy-pages
 
 # main へ push されたら GitHub Pages に静的サイトを公開する。
+# build-www.mjs で配布物（index.html / css / js / icons / manifest / sw.js）だけを www/ に集約し、
+# それを公開する。tests / *.md（DESIGN.md 等）/ package*.json / scripts は公開しない。
 # リポジトリの Settings → Pages → Source を「GitHub Actions」にしておくこと。
 on:
   push:
@@ -24,10 +26,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build static site (www/)
+        run: node scripts/build-www.mjs
       - uses: actions/configure-pages@v5
-      - name: Upload site (リポジトリ直下が静的サイト)
+      - name: Upload site (www/ のみ＝配布アセットに限定)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "."
+          path: "www"
       - id: deployment
         uses: actions/deploy-pages@v4
