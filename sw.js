@@ -2,7 +2,7 @@
  * アプリシェル（HTML/JS/CSS/アイコン）をキャッシュしてオフライン起動を可能にする。
  * すべて相対パス＝GitHub Pages の任意サブパスでも動作する。
  */
-const CACHE = 'droidhaz-v16';
+const CACHE = 'droidhaz-v17';
 
 const ASSETS = [
   './',
@@ -28,8 +28,9 @@ const ASSETS = [
   './js/systems/ai.js', './js/systems/attacks.js', './js/systems/combat-core.js',
   './js/systems/combat.js', './js/systems/enemies.js', './js/systems/flowfield.js',
   './js/systems/fx.js', './js/systems/items.js', './js/systems/los.js',
-  './js/systems/melee.js', './js/systems/physics.js', './js/systems/projectiles.js',
-  './js/systems/save-local.js', './js/systems/spatial.js', './js/systems/spawner.js',
+  './js/systems/melee.js', './js/systems/melee-combo.js', './js/systems/physics.js',
+  './js/systems/projectiles.js', './js/systems/save-local.js', './js/systems/spatial.js',
+  './js/systems/spawner.js', './js/systems/status.js',
   './js/systems/tiles.js', './js/systems/autoaim.js', './js/systems/progress.js',
   './js/systems/scores.js',
 ];
