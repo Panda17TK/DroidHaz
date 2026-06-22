@@ -6,8 +6,23 @@ import { getItem, setItem } from '../services/kv.js';
 
 export const KEY_SCORES = 'arena_scores';
 
+// LOW(persistence): 破損/外部改変データでも数値ソートが NaN にならないよう正規化する。
+function normalizeScore(r) {
+  const o = (r && typeof r === 'object') ? r : {};
+  return {
+    name: (typeof o.name === 'string') ? o.name : '',
+    wave: (Number.isFinite(+o.wave) ? +o.wave : 0) | 0,
+    timeMs: Number.isFinite(+o.timeMs) ? +o.timeMs : 0,
+    kills: (Number.isFinite(+o.kills) ? +o.kills : 0) | 0,
+    createdAt: Number.isFinite(+o.createdAt) ? +o.createdAt : 0,
+  };
+}
+
 export function readScores() {
-  try { return JSON.parse(getItem(KEY_SCORES) || '[]'); } catch (_e) { return []; }
+  try {
+    const raw = JSON.parse(getItem(KEY_SCORES) || '[]');
+    return Array.isArray(raw) ? raw.map(normalizeScore) : [];
+  } catch (_e) { return []; }
 }
 export function writeScores(list) {
   try { setItem(KEY_SCORES, JSON.stringify(list)); } catch (_e) {}
