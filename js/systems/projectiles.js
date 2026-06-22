@@ -140,8 +140,12 @@ export function explode(state, x, y) {
   const dp = Math.hypot(state.player.x - x, state.player.y - y);
   if (dp < r * 0.7) {
     const fall = 1 - dp / (r * 0.7);
-    state.player.hp -= Math.round(CONFIG.player.explodeSelfDmg * fall);
-    recordPlayerHit(state, x, y);
+    // LOW(correctness): 自爆ダメージも i-frame を尊重する（通常被弾と整合）。
+    // ノックバック（物理）は i-frame 中でも適用してよい。
+    if ((state.player.iTime || 0) <= 0) {
+      state.player.hp -= Math.round(CONFIG.player.explodeSelfDmg * fall);
+      recordPlayerHit(state, x, y);
+    }
     const n = norm(state.player.x - x, state.player.y - y);
     state.player.vx += n.x * 200 * fall; state.player.vy += n.y * 200 * fall;
   }
