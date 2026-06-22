@@ -515,10 +515,11 @@ a {
 /* 配置：右親指=近接/武器/リロード（射撃は右スティック）、左親指=ダッシュ/壁 */
 /* REQ-DISP-2: 右/左/下のオフセットに safe-area を加算（最低余白を確保） */
 .tc-btn-melee  { right: calc(24px + var(--sar));  bottom: calc(150px + var(--sab)); }
-.tc-btn-weapon { right: calc(102px + var(--sar)); bottom: calc(150px + var(--sab)); width: calc(54px * var(--tc-scale)); height: calc(54px * var(--tc-scale)); font-size: 12px; }
-.tc-btn-reload { right: calc(24px + var(--sar));  bottom: calc(224px + var(--sab)); width: calc(54px * var(--tc-scale)); height: calc(54px * var(--tc-scale)); }
+/* A11Y: tap 領域は 44px 下限を保証（scale 0.8 で 54px*0.8=43.2px に潰れるのを防ぐ） */
+.tc-btn-weapon { right: calc(102px + var(--sar)); bottom: calc(150px + var(--sab)); width: max(44px, calc(54px * var(--tc-scale))); height: max(44px, calc(54px * var(--tc-scale))); font-size: 12px; }
+.tc-btn-reload { right: calc(24px + var(--sar));  bottom: calc(224px + var(--sab)); width: max(44px, calc(54px * var(--tc-scale))); height: max(44px, calc(54px * var(--tc-scale))); }
 .tc-btn-dash   { left: calc(24px + var(--sal));   bottom: calc(150px + var(--sab)); }
-.tc-btn-build  { left: calc(102px + var(--sal));  bottom: calc(150px + var(--sab)); width: calc(54px * var(--tc-scale)); height: calc(54px * var(--tc-scale)); }
+.tc-btn-build  { left: calc(102px + var(--sal));  bottom: calc(150px + var(--sab)); width: max(44px, calc(54px * var(--tc-scale))); height: max(44px, calc(54px * var(--tc-scale))); }
 .tc-btn-pause    { right: calc(12px + var(--sar)); top: calc(12px + var(--sat)); width: 44px; height: 44px; font-size: 12px; }
 .tc-btn-settings { right: calc(64px + var(--sar)); top: calc(12px + var(--sat)); width: 44px; height: 44px; font-size: 18px; }
 
