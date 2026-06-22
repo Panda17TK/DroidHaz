@@ -96,6 +96,9 @@ export function createTouchControls(root, input, api, cfg) {
   const layer = document.createElement('div');
   layer.className = 'touch-controls';
 
+  // 各スティックゾーンの release() を集約（外部 reset() 用：MEDIUM touch 修正）。
+  const zoneReleases = [];
+
   const BASE_R = 60; // 基準可動半径(px)。サイズ設定で拡縮
   const getR = () => BASE_R * cfg.scale;
 
@@ -119,6 +122,7 @@ export function createTouchControls(root, input, api, cfg) {
       if (kind === 'move') { move.active = false; move.x = 0; move.y = 0; }
       else { aim.active = false; aim.x = 0; aim.y = 0; keys['k'] = false; }
     }
+    zoneReleases.push(release);
 
     function update(e) {
       const R = getR();
@@ -301,7 +305,10 @@ export function createTouchControls(root, input, api, cfg) {
   // 表示/非表示（REQ-TOUCH-4）。
   function setVisible(v) { layer.style.display = v ? '' : 'none'; }
 
+  // 全スティックを中立化（pid/knob/move/aim をクリア）。overlay 開始時に main.js が呼ぶ。
+  function reset() { for (const r of zoneReleases) { try { r(); } catch (_e) {} } }
+
   apply();
   root.appendChild(layer);
-  return { el: layer, applySettings, setVisible };
+  return { el: layer, applySettings, setVisible, reset };
 }

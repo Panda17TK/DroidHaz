@@ -144,6 +144,9 @@ if (!canvas) {
   // overlay stack の変更を state.paused と DOM に反映する唯一の同期点。
   function syncUi() {
     state.paused = isSimPaused(state); // 唯一の導出点（overlay / gameover / intermission / dev）
+    // MEDIUM(touch): 停止に入ったらタッチスティックを解放（ドラッグ中に overlay が開いて
+    // pointerup が来ず pid/knob が stale → 再開後にスティックが効かない問題を防ぐ）。
+    if (state.paused && touchCtl && touchCtl.reset) touchCtl.reset();
     for (const v of uiViews) v.render(state.ui);
     // 閉じた直後の 1 フレームは hold 入力をリセット（再開時の暴発防止）
     if (consumeResumeGuard(state.ui) && !isUiPaused(state.ui)) neutralizeGameInput();
@@ -478,7 +481,10 @@ if (!canvas) {
       state.gameOver = true;
       pushOverlay(state.ui, 'gameover'); // 最下位固定。pause を積めなくする
       syncUi();                          // state.paused = true（UI または gameOver）
-      const timeMs = Math.max(0, performance.now() - state.runStart);
+      // MEDIUM(loop): スコアの生存時間は実時間(wall-clock)ではなくシミュレーション時間で計る。
+      // 低fps/スロー/ヒットストップで wall-clock が過大計上され端末性能でリーダーボードが
+      // 不公平になるのを防ぐ（waves を実際に駆動している sim 時計 = state.timers.elapsed）。
+      const timeMs = Math.max(0, Math.round(((state.timers && state.timers.elapsed) || 0) * 1000));
       state.stats.timeMs = timeMs;
       bus.emit('game:over', { reason: 'death', timeMs });
     }
