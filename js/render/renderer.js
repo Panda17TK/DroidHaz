@@ -163,9 +163,14 @@ export function renderFrame(ctx, canvas, state) {
   ctx.scale(zoom, zoom);
   ctx.translate(-camX, -camY);
 
-  // ===== タイル =====
-  for (let y = 0; y < state.dim.h; y++) {
-    for (let x = 0; x < state.dim.w; x++) {
+  // ===== タイル（ビューカリング：画面に映る範囲だけ描く。±1 はシェイク余裕）=====
+  // 600 タイル全描画→可視範囲(≈17×30 の一部)に限定し、低スペック端末の描画コストを削減。
+  const tx0 = Math.max(0, Math.floor(camX / TILE) - 1);
+  const ty0 = Math.max(0, Math.floor(camY / TILE) - 1);
+  const tx1 = Math.min(state.dim.w - 1, Math.ceil((camX + viewW) / TILE) + 1);
+  const ty1 = Math.min(state.dim.h - 1, Math.ceil((camY + viewH) / TILE) + 1);
+  for (let y = ty0; y <= ty1; y++) {
+    for (let x = tx0; x <= tx1; x++) {
       const c = state.map[y][x];
       const px = x * TILE, py = y * TILE;
       if (c === '#') {
@@ -502,6 +507,14 @@ export function renderFrame(ctx, canvas, state) {
   if (state.dmgMarks && state.dmgMarks.length) {
     const cx = W / 2, cy = H / 2;
     const rad = Math.min(W, H) * 0.34;
+    // 勾配は (rad,0) 中心・固定色＝rad（=画面サイズ）が変わらない限り使い回せる。
+    // 各マークの濃淡は globalAlpha で表現（毎フレーム/毎マークの生成を排除）。
+    if (state._dmgGradRad !== rad || !state._dmgGrad) {
+      const g = ctx.createRadialGradient(rad, 0, 0, rad, 0, 60);
+      g.addColorStop(0, 'rgba(255,60,60,0.9)');
+      g.addColorStop(1, 'rgba(255,60,60,0)');
+      state._dmgGrad = g; state._dmgGradRad = rad;
+    }
     for (const dm of state.dmgMarks) {
       const a = 1 - dm.t / dm.life;
       if (a <= 0) continue;
@@ -510,10 +523,7 @@ export function renderFrame(ctx, canvas, state) {
       ctx.rotate(dm.ang);
       ctx.globalAlpha = a * 0.8;
       // 弧（方向を示す扇）
-      const grd = ctx.createRadialGradient(rad, 0, 0, rad, 0, 60);
-      grd.addColorStop(0, 'rgba(255,60,60,0.9)');
-      grd.addColorStop(1, 'rgba(255,60,60,0)');
-      ctx.fillStyle = grd;
+      ctx.fillStyle = state._dmgGrad;
       ctx.beginPath();
       ctx.arc(0, 0, rad + 18, -0.35, 0.35);
       ctx.arc(0, 0, rad - 14, 0.35, -0.35, true);
@@ -531,10 +541,17 @@ export function renderFrame(ctx, canvas, state) {
   const hpr = (pl2.hp) / (pl2.hpMax || 100);
   if (hpr > 0 && hpr < 0.3 && !state.gameOver) {
     const pulse = 0.25 + 0.2 * Math.sin(nowMs / 220);
-    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.62);
-    vg.addColorStop(0, 'rgba(180,0,0,0)');
-    vg.addColorStop(1, `rgba(180,0,0,${pulse * (1 - hpr / 0.3)})`);
-    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    // ジオメトリ（固定色 0→1）はキャッシュし、パルス＋HP残量の濃淡は globalAlpha で表現。
+    // createRadialGradient の毎フレーム生成（被弾直前の最も苦しい場面での GC）を排除。
+    const r0 = Math.min(W, H) * 0.3, r1 = Math.max(W, H) * 0.62;
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.fillStyle = radialAtOrigin(ctx, r0, r1,
+      [[0, 'rgba(180,0,0,0)'], [1, 'rgba(180,0,0,1)']], 'lowhp|' + W + 'x' + H);
+    ctx.globalAlpha = Math.max(0, Math.min(1, pulse * (1 - hpr / 0.3)));
+    ctx.fillRect(-W / 2, -H / 2, W, H);
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   // ボス撃破キルカム：レターボックス＋テキスト
