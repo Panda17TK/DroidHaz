@@ -1,0 +1,684 @@
+@charset "UTF-8";
+
+/* REQ-DISP-2: セーフエリア（ノッチ/ホームインジケータ/角丸）を CSS 変数化。
+   非対応環境では 0px にフォールバックし、デスクトップでは現状と同一レイアウトになる。 */
+:root {
+	--sat: env(safe-area-inset-top, 0px);
+	--sar: env(safe-area-inset-right, 0px);
+	--sab: env(safe-area-inset-bottom, 0px);
+	--sal: env(safe-area-inset-left, 0px);
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	background: #0b0e13;
+	color: #e7ecf3;
+	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+		Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+	/* モバイルでのスクロール／引っ張り更新／ズームを抑止 */
+	overflow: hidden;
+	overscroll-behavior: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+#wrap, canvas {
+	touch-action: none;
+}
+
+#wrap {
+	position: relative;
+	height: 100%;
+}
+
+canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+	image-rendering: pixelated;
+}
+
+#hud {
+	position: absolute;
+	left: calc(12px + var(--sal));
+	top: calc(10px + var(--sat));
+	font-size: 14px;
+	line-height: 1.35;
+	background: rgba(0, 0, 0, .35);
+	padding: 8px 10px;
+	border-radius: 10px;
+	backdrop-filter: blur(4px);
+}
+
+/* HUD: HP/スタミナのバー */
+.hud-bars {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 6px;
+}
+.hud-bars .bar {
+	position: relative;
+	width: 180px;
+	height: 14px;
+	border-radius: 7px;
+	background: rgba(255, 255, 255, .12);
+	overflow: hidden;
+}
+.hud-bars .bar .fill {
+	position: absolute;
+	left: 0; top: 0; bottom: 0;
+	border-radius: 7px;
+	transition: width .12s linear;
+}
+.hud-bars .bar.hp .fill  { background: linear-gradient(90deg, #4caf6e, #7fe08a); }
+.hud-bars .bar.hp .fill.low { background: linear-gradient(90deg, #c0392b, #e08a7f); }
+.hud-bars .bar.sta .fill { background: linear-gradient(90deg, #3a78c0, #7fb6e0); }
+.hud-bars .bar label {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: .04em;
+	color: #fff;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, .8);
+}
+.hud-line { font-size: 13px; }
+.hud-buff { color: #ffd166; font-size: 12px; }
+.hud-wave { color: #9ad0ff; font-weight: 700; }
+
+#help {
+	position: absolute;
+	right: calc(12px + var(--sar));
+	top: calc(10px + var(--sat));
+	font-size: 13px;
+	line-height: 1.4;
+	opacity: .9;
+	background: rgba(0, 0, 0, .35);
+	padding: 8px 10px;
+	border-radius: 10px;
+	max-width: min(60ch, 60vw);
+}
+
+.pill {
+	display: inline-block;
+	padding: 0 8px;
+	border-radius: 999px;
+	background: #17202a;
+	border: 1px solid #273142;
+	margin-right: 6px;
+	font-variant: all-small-caps;
+	letter-spacing: .03em;
+}
+
+a {
+	color: #9ad0ff;
+}
+
+#toast {
+	position: absolute;
+	left: 50%;
+	bottom: 16px;
+	transform: translateX(-50%);
+	background: rgba(0, 0, 0, .5);
+	padding: 8px 12px;
+	border-radius: 10px;
+	font-size: 14px;
+	min-width: 200px;
+	text-align: center;
+	opacity: 0;
+	transition: opacity .25s ease;
+}
+
+#toast.show {
+	opacity: 1;
+}
+
+.overlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, .6);
+	z-index: 10;
+}
+
+.overlay.hidden {
+	display: none;
+}
+
+.overlay .panel {
+	background: #101622;
+	border: 1px solid #273142;
+	border-radius: 12px;
+	padding: 16px 18px;
+	min-width: 320px;
+	color: #e7ecf3;
+	/* REQ-DISP-2: セーフエリアを除いた表示可能高を超えない（100vh ではなく 100dvh） */
+	max-width: calc(100vw - var(--sal) - var(--sar) - 24px);
+	max-height: calc(100dvh - var(--sat) - var(--sab) - 32px);
+	overflow: auto;
+}
+
+.overlay .panel h2 {
+	margin: 0 0 8px;
+}
+
+.overlay .panel .form {
+	margin-top: 12px;
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.overlay .panel input {
+	background: #0b0e13;
+	color: #e7ecf3;
+	border: 1px solid #273142;
+	padding: 6px 8px;
+	border-radius: 6px;
+}
+
+.overlay .panel button {
+	background: #1e2a3a;
+	color: #e7ecf3;
+	border: 1px solid #2b3a50;
+	padding: 6px 10px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.overlay .panel button:hover {
+	background: #273548;
+}
+
+.overlay .panel .board {
+	margin-top: 12px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+/* ===== 強化カード（ウェーブ間） ===== */
+.upgrade-cards {
+	display: flex;
+	gap: 12px;
+	margin-top: 12px;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+.upgrade-card {
+	flex: 1 1 160px;
+	max-width: 200px;
+	min-height: 96px;
+	text-align: left;
+	background: #15202e;
+	border: 1px solid #2b3a50;
+	border-radius: 10px;
+	padding: 12px 14px;
+	color: #e7ecf3;
+	cursor: pointer;
+	transition: transform .08s ease, border-color .08s ease, background .08s ease;
+}
+.upgrade-card:hover {
+	transform: translateY(-3px);
+	border-color: #7ab0ff;
+	background: #1b2a3c;
+}
+.upgrade-card .uc-name {
+	font-size: 15px;
+	font-weight: 700;
+	margin-bottom: 6px;
+	color: #ffd166;
+}
+.upgrade-card .uc-desc {
+	font-size: 13px;
+	line-height: 1.4;
+	opacity: .9;
+}
+
+/* ===== ポーズ／確認メニュー（REQ-TOUCH-1） ===== */
+.pause-panel, .confirm-panel { min-width: 260px; }
+.pause-menu {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 12px;
+}
+.pm-btn {
+	min-height: 48px;           /* A11Y: タップ領域 44px 以上 */
+	padding: 10px 16px;
+	font-size: 16px;
+	text-align: left;
+	background: #1e2a3a;
+	color: #e7ecf3;
+	border: 1px solid #2b3a50;
+	border-radius: 10px;
+	cursor: pointer;
+}
+.pm-btn:hover { background: #273548; }
+.pm-btn:disabled { opacity: .45; cursor: not-allowed; }
+.pm-btn.pm-quit { border-color: #5a2b2b; color: #ffb3b3; }
+.confirm-panel .cf-msg { margin: 8px 0 0; font-size: 14px; line-height: 1.5; opacity: .9; }
+.confirm-panel .cf-actions { justify-content: flex-end; }
+.confirm-panel .cf-ok, .confirm-panel .cf-cancel { min-height: 44px; min-width: 88px; }
+.confirm-panel .cf-ok { background: #244; border-color: #2b5; }
+
+/* ===== セーブ/ロード スロットUI（REQ-TOUCH-2） ===== */
+.slot-panel { min-width: 300px; }
+.slot-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.slot-row { display: flex; gap: 8px; align-items: stretch; }
+.slot-info {
+	flex: 1;
+	min-height: 56px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	text-align: left;
+	padding: 8px 12px;
+	background: #15202e;
+	color: #e7ecf3;
+	border: 1px solid #2b3a50;
+	border-radius: 10px;
+	cursor: pointer;
+}
+.slot-info:hover:not(:disabled) { background: #1b2a3c; border-color: #7ab0ff; }
+.slot-info:disabled { opacity: .4; cursor: not-allowed; }
+.slot-info.broken { border-color: #5a2b2b; }
+.slot-info .slot-name { font-weight: 700; font-size: 15px; color: #ffd166; }
+.slot-info.broken .slot-name { color: #ffb3b3; }
+.slot-info .slot-sub { font-size: 12px; opacity: .9; }
+.slot-info .slot-date { font-size: 11px; opacity: .6; }
+.slot-del {
+	min-width: 48px;
+	background: #1e2a3a;
+	color: #ffb3b3;
+	border: 1px solid #5a2b2b;
+	border-radius: 10px;
+	cursor: pointer;
+	font-size: 16px;
+}
+.slot-del:hover { background: #2a1e1e; }
+.slot-actions { justify-content: flex-end; }
+.slot-actions .slot-back { min-height: 44px; min-width: 88px; }
+
+/* ===== 設定パネル（overlay・REQ-TOUCH-3） ===== */
+.settings-panel { min-width: 300px; }
+.set-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.set-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-height: 44px;
+	padding: 4px 2px;
+	font-size: 15px;
+}
+.set-row input[type="range"] { width: 140px; }
+.set-row select {
+	background: #0b0e13; color: #e7ecf3; border: 1px solid #273142;
+	border-radius: 6px; padding: 6px 8px; font-size: 14px;
+}
+.set-actions { justify-content: flex-end; }
+.set-actions .set-close { min-height: 44px; min-width: 88px; }
+
+/* ===== タイトル画面（REQ-TITLE-1・F5a） ===== */
+.title-screen {
+	position: absolute;
+	inset: 0;
+	z-index: 9;            /* overlay(10) より下・タッチ/ラジアル より上 */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: calc(24px + var(--sat)) calc(16px + var(--sar)) calc(24px + var(--sab)) calc(16px + var(--sal));
+	background:
+		radial-gradient(120% 80% at 50% 10%, rgba(40, 70, 120, .35), rgba(11, 14, 19, .92) 70%),
+		#0b0e13;
+	overflow: auto;
+}
+.title-screen.hidden { display: none; }
+.title-inner {
+	width: min(420px, 100%);
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 10px;
+}
+.title-logo {
+	margin: 0;
+	font-size: clamp(32px, 9vw, 52px);
+	letter-spacing: .08em;
+	color: #cfe5ff;
+	text-shadow: 0 2px 18px rgba(120, 180, 255, .35);
+}
+.title-sub { margin: 0 0 10px; opacity: .8; font-size: 13px; }
+.title-mode { display: flex; gap: 10px; justify-content: center; }
+.tm-btn {
+	flex: 1;
+	min-height: 44px;
+	background: #15202e;
+	color: #cfe0f5;
+	border: 1px solid #2b3a50;
+	border-radius: 10px;
+	font-size: 15px;
+	cursor: pointer;
+}
+.tm-btn.sel { background: rgba(90, 130, 200, .8); border-color: #b4d2ff; color: #fff; }
+.tm-btn:disabled { opacity: .45; cursor: not-allowed; }
+.title-menu { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.tt-btn {
+	min-height: 50px;
+	padding: 10px 16px;
+	font-size: 17px;
+	text-align: left;
+	background: #1e2a3a;
+	color: #e7ecf3;
+	border: 1px solid #2b3a50;
+	border-radius: 12px;
+	cursor: pointer;
+}
+.tt-btn:hover:not(:disabled) { background: #273548; }
+.tt-btn:disabled { opacity: .4; cursor: not-allowed; }
+.title-hint { margin: 8px 0 0; font-size: 12px; opacity: .7; }
+
+/* ===== つづきから overlay（REQ-SAVE-2） ===== */
+.continue-panel { min-width: 300px; }
+.continue-panel .ct-load {
+	width: 100%;
+	min-height: 48px;
+	margin-top: 12px;
+	background: #1e2a3a;
+	color: #e7ecf3;
+	border: 1px solid #2b3a50;
+	border-radius: 10px;
+	font-size: 16px;
+	cursor: pointer;
+}
+.continue-panel .ct-load:hover { background: #273548; }
+.continue-panel .ct-h3 { margin: 14px 0 8px; font-size: 14px; color: #9ad0ff; }
+.ct-stages { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.ct-stage {
+	min-height: 56px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 2px;
+	padding: 8px 12px;
+	background: #15202e;
+	color: #e7ecf3;
+	border: 1px solid #2b3a50;
+	border-radius: 10px;
+	cursor: pointer;
+}
+.ct-stage:hover:not(:disabled) { background: #1b2a3c; border-color: #7ab0ff; }
+.ct-stage:disabled { opacity: .4; cursor: not-allowed; }
+.ct-stage .ct-num { font-size: 12px; color: #9ad0ff; font-weight: 700; }
+.ct-stage .ct-name { font-size: 14px; }
+.ct-stage.ct-endless { grid-column: 1 / -1; align-items: center; }
+.ct-stage.ct-endless .ct-num { color: #ffd166; }
+.ct-actions { justify-content: flex-end; }
+.ct-actions .ct-back { min-height: 44px; min-width: 88px; }
+
+/* ===== スコア overlay ===== */
+.scores-panel { min-width: 280px; }
+.scores-board { margin-top: 12px; font-size: 14px; line-height: 1.7; }
+.scores-actions { justify-content: flex-end; }
+.scores-actions .scores-close { min-height: 44px; min-width: 88px; }
+
+/* ===== タッチ操作（スマホ/タブレット） ===== */
+.touch-controls {
+	position: absolute;
+	inset: 0;
+	z-index: 5; /* ゲームオーバー overlay(z:10) より下 */
+	pointer-events: none;
+	--tc-op: 0.9;    /* 不透明度（設定で変更） */
+	--tc-scale: 1;   /* サイズ倍率（設定で変更） */
+}
+
+.tc-zone {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 50%;
+	pointer-events: auto;
+	touch-action: none;
+}
+
+.tc-zone-move { left: 0; }
+.tc-zone-aim  { right: 0; }
+/* 左右入れ替え */
+.touch-controls.tc-swap .tc-zone-move { left: auto; right: 0; }
+.touch-controls.tc-swap .tc-zone-aim  { right: auto; left: 0; }
+
+.tc-base {
+	position: absolute;
+	width: calc(120px * var(--tc-scale));
+	height: calc(120px * var(--tc-scale));
+	border-radius: 50%;
+	border: 2px solid rgba(255, 255, 255, .22);
+	background: rgba(255, 255, 255, .05);
+	transform: translate(-50%, -50%);
+	opacity: 0;
+	transition: opacity .1s ease;
+	pointer-events: none;
+}
+.tc-base.show { opacity: var(--tc-op); }
+
+.tc-knob {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: calc(54px * var(--tc-scale));
+	height: calc(54px * var(--tc-scale));
+	border-radius: 50%;
+	background: rgba(180, 210, 255, .35);
+	border: 1px solid rgba(255, 255, 255, .4);
+	transform: translate(-50%, -50%);
+}
+
+.tc-btn {
+	position: absolute;
+	width: calc(64px * var(--tc-scale));
+	height: calc(64px * var(--tc-scale));
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, .3);
+	background: rgba(20, 28, 40, .55);
+	color: #e7ecf3;
+	font-size: 13px;
+	font-weight: 600;
+	pointer-events: auto;
+	touch-action: none;
+	opacity: var(--tc-op);
+	-webkit-user-select: none;
+	user-select: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	backdrop-filter: blur(2px);
+}
+
+.tc-btn.active {
+	background: rgba(90, 130, 200, .65);
+	border-color: rgba(180, 210, 255, .7);
+}
+
+/* 配置：右親指=近接/武器/リロード（射撃は右スティック）、左親指=ダッシュ/壁 */
+/* REQ-DISP-2: 右/左/下のオフセットに safe-area を加算（最低余白を確保） */
+.tc-btn-melee  { right: calc(24px + var(--sar));  bottom: calc(150px + var(--sab)); }
+.tc-btn-weapon { right: calc(102px + var(--sar)); bottom: calc(150px + var(--sab)); width: calc(54px * var(--tc-scale)); height: calc(54px * var(--tc-scale)); font-size: 12px; }
+.tc-btn-reload { right: calc(24px + var(--sar));  bottom: calc(224px + var(--sab)); width: calc(54px * var(--tc-scale)); height: calc(54px * var(--tc-scale)); }
+.tc-btn-dash   { left: calc(24px + var(--sal));   bottom: calc(150px + var(--sab)); }
+.tc-btn-build  { left: calc(102px + var(--sal));  bottom: calc(150px + var(--sab)); width: calc(54px * var(--tc-scale)); height: calc(54px * var(--tc-scale)); }
+.tc-btn-pause    { right: calc(12px + var(--sar)); top: calc(12px + var(--sat)); width: 44px; height: 44px; font-size: 12px; }
+.tc-btn-settings { right: calc(64px + var(--sar)); top: calc(12px + var(--sat)); width: 44px; height: 44px; font-size: 18px; }
+
+/* 左右入れ替え時はボタンクラスタも反対側へ（safe-area も入替側に） */
+.touch-controls.tc-swap .tc-btn-melee  { right: auto; left: calc(24px + var(--sal)); }
+.touch-controls.tc-swap .tc-btn-weapon { right: auto; left: calc(102px + var(--sal)); }
+.touch-controls.tc-swap .tc-btn-reload { right: auto; left: calc(24px + var(--sal)); }
+.touch-controls.tc-swap .tc-btn-dash   { left: auto; right: calc(24px + var(--sar)); }
+.touch-controls.tc-swap .tc-btn-build  { left: auto; right: calc(102px + var(--sar)); }
+
+/* ===== 武器ラジアル（REQ-CTRL-3・長押しで表示） ===== */
+.weapon-radial {
+	position: absolute;
+	inset: 0;
+	z-index: 6;            /* タッチボタン(5)より上・overlay(10)より下 */
+	pointer-events: none; /* 選択は武器ボタンの捕捉ポインタが駆動 */
+}
+.weapon-radial.hidden { display: none; }
+.weapon-radial .wr-hub {
+	position: absolute;
+	width: 18px; height: 18px;
+	border-radius: 50%;
+	background: rgba(180, 210, 255, .5);
+	border: 1px solid rgba(255, 255, 255, .6);
+	transform: translate(-50%, -50%);
+}
+.weapon-radial .wr-slot {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	min-width: 56px;
+	padding: 8px 10px;
+	border-radius: 12px;
+	background: rgba(16, 22, 34, .9);
+	border: 1px solid #2b3a50;
+	color: #cfe0f5;
+	font-size: 13px;
+	font-weight: 600;
+	text-align: center;
+	white-space: nowrap;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, .4);
+}
+.weapon-radial .wr-slot.cur { border-color: #4a6a90; color: #9ad0ff; }
+.weapon-radial .wr-slot.active {
+	background: rgba(90, 130, 200, .9);
+	border-color: #b4d2ff;
+	color: #fff;
+	transform: translate(-50%, -50%) scale(1.12);
+}
+
+/* タッチ端末ではキーボード操作ヘルプを隠す（誤タップ防止＆省スペース） */
+body.touch #help { display: none; }
+
+/* 縦持ち時は横向き推奨のヒントを表示 */
+#rotate-hint { display: none; }
+body.touch #rotate-hint {
+	position: absolute;
+	left: 50%;
+	top: 10px;
+	transform: translateX(-50%);
+	z-index: 6;
+	background: rgba(0, 0, 0, .55);
+	padding: 6px 12px;
+	border-radius: 999px;
+	font-size: 12px;
+	white-space: nowrap;
+}
+@media (orientation: landscape) {
+	body.touch #rotate-hint { display: none; }
+}
+@media (orientation: portrait) {
+	body.touch #rotate-hint { display: block; }
+}
+/* ===== 開発者モード ===== */
+#dev-btn {
+	position: absolute;
+	right: 12px;
+	bottom: 12px;
+	z-index: 8;
+	background: rgba(20, 28, 40, .7);
+	color: #9ad0ff;
+	border: 1px solid #2b3a50;
+	border-radius: 8px;
+	padding: 6px 10px;
+	font-size: 12px;
+	font-weight: 700;
+	cursor: pointer;
+}
+#dev-btn:hover { background: #1b2a3c; }
+body.touch #dev-btn { bottom: auto; top: calc(12px + var(--sat)); right: calc(116px + var(--sar)); }
+
+.dev-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 20;
+	background: rgba(0, 0, 0, .55);
+	display: flex;
+	justify-content: flex-end;
+}
+.dev-overlay.hidden { display: none; }
+.dev-panel {
+	width: min(420px, 92vw);
+	height: 100%;
+	background: #0e141d;
+	border-left: 1px solid #273142;
+	display: flex;
+	flex-direction: column;
+}
+.dev-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px;
+	border-bottom: 1px solid #273142;
+}
+.dev-header h2 { margin: 0; font-size: 16px; }
+.dev-close {
+	background: #1e2a3a; color: #e7ecf3; border: 1px solid #2b3a50;
+	border-radius: 6px; padding: 6px 10px; cursor: pointer;
+}
+.dev-body { overflow-y: auto; padding: 10px 14px; }
+.dev-section { margin-bottom: 16px; }
+.dev-section h3 {
+	margin: 0 0 8px; font-size: 13px; color: #9ad0ff;
+	border-bottom: 1px solid #1c2735; padding-bottom: 4px;
+}
+.dev-row {
+	display: flex; align-items: center; justify-content: space-between;
+	gap: 8px; margin: 4px 0; font-size: 12px;
+}
+.dev-row span { opacity: .85; }
+.dev-row input[type="number"] {
+	width: 90px; background: #0b0e13; color: #e7ecf3;
+	border: 1px solid #273142; border-radius: 5px; padding: 3px 6px; font-size: 12px;
+}
+.dev-row select {
+	background: #0b0e13; color: #e7ecf3; border: 1px solid #273142;
+	border-radius: 5px; padding: 3px 6px; font-size: 12px;
+}
+.dev-enemy {
+	border: 1px solid #1c2735; border-radius: 8px;
+	padding: 8px 10px; margin-bottom: 10px; background: #0c121a;
+}
+.dev-enemy-name { font-weight: 700; margin-bottom: 6px; }
+.dev-enemy-name small { color: #ffd166; font-weight: 400; }
+.dev-sub { font-size: 12px; color: #9ad0ff; margin: 6px 0 4px; }
+.dev-atk {
+	border: 1px dashed #273142; border-radius: 6px;
+	padding: 6px 8px; margin: 6px 0; background: #0b1119;
+}
+.dev-atk-head { display: flex; gap: 8px; margin-bottom: 4px; }
+.dev-atk-head select { flex: 1; }
+.dev-mini {
+	background: #1e2a3a; color: #e7ecf3; border: 1px solid #2b3a50;
+	border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; margin-top: 4px;
+}
+.dev-mini:hover { background: #273548; }
+.dev-mini.add { width: 100%; }
+.dev-mini.danger { border-color: #5a2b2b; color: #ffb3b3; }
+.dev-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.dev-io {
+	width: 100%; height: 120px; background: #0b0e13; color: #c9d4e0;
+	border: 1px solid #273142; border-radius: 6px; font-family: monospace; font-size: 11px;
+}

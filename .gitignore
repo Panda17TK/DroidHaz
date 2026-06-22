@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+*.swp
+
+# Capacitor build output（npm run build で再生成）
+/www/
+
+# Capacitor ネイティブプロジェクト（npx cap add で生成）
+# コミットするかは運用次第。まずは生成物として無視する。
+/android/
+/ios/

@@ -1,0 +1,23 @@
+{
+  "appId": "tech.bantian.droidhaz",
+  "appName": "DroidHaz",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#0b0e13"
+  },
+  "ios": {
+    "backgroundColor": "#0b0e13",
+    "contentInset": "never"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#0b0e13",
+      "showSpinner": false
+    }
+  }
+}

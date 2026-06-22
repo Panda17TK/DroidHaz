@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run unit tests
+        run: node --test test/*.test.mjs
+      - name: Syntax check all modules
+        run: |
+          fail=0
+          for f in $(find js -name '*.js'); do
+            node --check "$f" || fail=1
+          done
+          exit $fail

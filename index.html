@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0b0e13" />
+<title>DroidHaz — サバイバル</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+	<div id="wrap">
+		<canvas id="game" width="1280" height="720"></canvas>
+		<div id="hud"></div>
+		<div id="help">
+			<div style="margin-bottom: 6px">
+				<span class="pill">操作</span>
+			</div>
+			<div>
+				移動: <b>WASD / 矢印</b> 近接: <b>J</b> 射撃/投擲: <b>K</b> リロード: <b>R</b>
+				武器切替: <b>1/2/3/4/5</b> ドア:<b>E</b><br /> <b>ダッシュ</b>: <b>Shift</b>（スタミナ消費、<b>速度×2</b>）
+				<b>壁設置</b>: <b>F</b><br /> セーブ: <b>P</b> ロード: <b>L</b> ポーズ: <b>Esc</b>
+			</div>
+		</div>
+
+		<!-- スマホ縦持ち時の横向き推奨ヒント（CSSで制御） -->
+		<div id="rotate-hint">📱 横向きにすると遊びやすいです</div>
+
+		<!-- 開発者モードを開くボタン（` キーでも開閉） -->
+		<button id="dev-btn" title="開発者モード（`キー）">DEV</button>
+
+		<!-- トースト通知（オーバーレイの外に置く＝ゲーム中も表示される） -->
+		<div id="toast"></div>
+
+		<!-- 開発者モード：パラメータエディタ -->
+		<div id="dev-overlay" class="dev-overlay hidden">
+			<div class="dev-panel">
+				<div class="dev-header">
+					<h2>開発者モード</h2>
+					<button class="dev-close">閉じる</button>
+				</div>
+				<div class="dev-body"></div>
+			</div>
+		</div>
+
+		<!-- ウェーブ間の強化カード選択 -->
+		<div id="upgrade-overlay" class="overlay hidden">
+			<div class="panel">
+				<h2 id="upgrade-title">強化を選択</h2>
+				<div id="upgrade-cards" class="upgrade-cards"></div>
+			</div>
+		</div>
+
+		<!-- ゲームオーバー用オーバーレイ -->
+		<div id="overlay" class="overlay hidden">
+			<div class="panel">
+				<h2>Game Over</h2>
+				<div class="lines" id="result-lines"></div>
+				<div class="form">
+					<label>名前: <input type="text" id="player-name"
+						maxlength="24" placeholder="Player"></label>
+					<button id="btn-save-score">戦績を保存</button>
+					<button id="btn-restart">リスタート</button>
+				</div>
+				<div class="board" id="score-board"></div>
+			</div>
+		</div>
+	</div>
+
+	<!-- PWA: Service Worker 登録（相対スコープ。HTTPS or localhost のみ有効） -->
+	<script>
+	if ('serviceWorker' in navigator) {
+		window.addEventListener('load', function () {
+			navigator.serviceWorker.register('sw.js')
+				.catch(function (e) { try { console.warn('SW登録失敗', e); } catch (_) {} });
+		});
+	}
+	</script>
+	<script type="module" src="js/main.js"></script>
+</body>
+</html>
