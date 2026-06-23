@@ -192,14 +192,21 @@ function drawHeroBody(ctx, a) {
   ctx.fillStyle = SHIRT; ctx.fillRect(-6, -4, 12, 9);
   ctx.fillStyle = SHIRT_SH; ctx.fillRect(-6, 3, 12, 2);
   ctx.fillStyle = 'rgba(255,255,255,0.20)'; ctx.fillRect(-6, -4, 12, 2);
-  // 頭
-  ctx.fillStyle = SKIN; ctx.fillRect(-5, -13, 10, 10);
-  ctx.fillStyle = SKIN_SH; ctx.fillRect(-5, -4, 10, 1);
-  // 髪
-  ctx.fillStyle = HAIR; ctx.fillRect(-6, -14, 12, 5);
-  ctx.fillRect(-6, -14, 2, 7); ctx.fillRect(4, -14, 2, 7);
-  drawFace(ctx, -8.5, 9, 'human', motion);
-  if (motion.sweat) drawSweat(ctx, 4.5, -9, nowS);
+  if (a.back) {
+    // 後ろ姿：後頭部の黒髪＋うなじ（顔は描かない）
+    ctx.fillStyle = SKIN; ctx.fillRect(-3, -3.5, 6, 2);
+    ctx.fillStyle = HAIR; ctx.fillRect(-6, -14, 12, 11);
+    ctx.fillStyle = '#1c1714'; ctx.fillRect(-1, -13, 2, 9); // つむじ/分け目
+  } else {
+    // 頭
+    ctx.fillStyle = SKIN; ctx.fillRect(-5, -13, 10, 10);
+    ctx.fillStyle = SKIN_SH; ctx.fillRect(-5, -4, 10, 1);
+    // 髪
+    ctx.fillStyle = HAIR; ctx.fillRect(-6, -14, 12, 5);
+    ctx.fillRect(-6, -14, 2, 7); ctx.fillRect(4, -14, 2, 7);
+    drawFace(ctx, -8.5, 9, 'human', motion);
+    if (motion.sweat) drawSweat(ctx, 4.5, -9, nowS);
+  }
   ctx.restore();
 }
 
@@ -219,15 +226,17 @@ function drawMageBody(ctx, a) {
   // 胴（ローブ上部）
   ctx.fillStyle = ROBE; ctx.fillRect(-6, -4, 12, 8);
   ctx.fillStyle = TRIM; ctx.fillRect(-1, -4, 2, 8); // 前立て
-  // 頭
-  ctx.fillStyle = SKIN; ctx.fillRect(-5, -13, 10, 10);
-  // とんがり帽子
+  // 頭（後ろ姿は髪/フードの陰で覆い顔を出さない）
+  ctx.fillStyle = a.back ? '#2a2438' : SKIN; ctx.fillRect(-5, -13, 10, 11);
+  // とんがり帽子（前後共通）
   ctx.fillStyle = HAT; ctx.beginPath();
   ctx.moveTo(-8, -12); ctx.lineTo(2, -26); ctx.lineTo(8, -12); ctx.closePath(); ctx.fill();
   ctx.fillStyle = TRIM; ctx.fillRect(-8, -13, 16, 2);
   ctx.fillStyle = accentOf('mage'); ctx.beginPath(); ctx.arc(2, -26, 1.8, 0, Math.PI * 2); ctx.fill(); // 帽子先の星玉
-  drawFace(ctx, -8.5, 9, 'human', motion);
-  if (motion.sweat) drawSweat(ctx, 4.5, -9, nowS);
+  if (!a.back) {
+    drawFace(ctx, -8.5, 9, 'human', motion);
+    if (motion.sweat) drawSweat(ctx, 4.5, -9, nowS);
+  }
   ctx.restore();
 }
 
@@ -259,27 +268,36 @@ function drawJkBody(ctx, a) {
   ctx.fillStyle = SKIN; ctx.fillRect(-8, 4.6, 3, 2); ctx.fillRect(5, 4.6, 3, 2);
   // 胴：白セーラー＋紺の大きな襟＋白2本ライン
   ctx.fillStyle = SAILOR; ctx.fillRect(-6, -4, 12, 9);
-  ctx.fillStyle = NAVY; ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(0, 2); ctx.lineTo(6, -4); ctx.lineTo(6, -1); ctx.lineTo(0, 3.4); ctx.lineTo(-6, -1); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = '#eef3fb'; ctx.lineWidth = 0.5;
-  ctx.beginPath(); ctx.moveTo(-5, -3.2); ctx.lineTo(0, 2); ctx.lineTo(5, -3.2); ctx.moveTo(-5.4, -2.4); ctx.lineTo(0, 2.9); ctx.lineTo(5.4, -2.4); ctx.stroke();
-  // 大きな赤いリボン（蝶結び）
-  ctx.fillStyle = BOW;
-  ctx.beginPath(); ctx.moveTo(0, 0.8); ctx.lineTo(-3.4, -0.6); ctx.lineTo(-3.4, 2.6); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(0, 0.8); ctx.lineTo(3.4, -0.6); ctx.lineTo(3.4, 2.6); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#9a2233'; ctx.fillRect(-0.9, 0.4, 1.8, 2.2);
-  ctx.fillStyle = BOW; ctx.fillRect(-0.7, 2.4, 1.4, 2.4);
-  // 頭（肌）
-  ctx.fillStyle = SKIN; ctx.fillRect(-4.5, -12, 9, 9.5); ctx.fillStyle = SKIN_SH; ctx.fillRect(-4.5, -3.2, 9, 1);
-  // 前髪（ぱっつん）＋サイドの毛束（顔を縁取り）＋天使の輪
-  ctx.fillStyle = HAIR;
-  ctx.fillRect(-5, -12.5, 10, 3.8);
-  ctx.fillRect(-5.4, -11, 1.7, 8.4); ctx.fillRect(3.7, -11, 1.7, 8.4);
-  ctx.beginPath(); ctx.moveTo(-5, -8.8); ctx.lineTo(-2.2, -8.8); ctx.lineTo(-3.6, -6.0); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(5, -8.8); ctx.lineTo(2.2, -8.8); ctx.lineTo(3.6, -6.0); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = HAIR_HI; ctx.fillRect(-3.4, -12.2, 6.4, 1);
-  // 顔（大きな瞳＋頬の赤み・眼鏡なし）
-  drawFace(ctx, -6.8, 9, 'human', motion, undefined, { bigEyes: true, blush: true });
-  if (motion.sweat) drawSweat(ctx, 5, -9.5, nowS);
+  if (a.back) {
+    // 後ろ姿：セーラー服の背面（四角い襟＋白ライン）＋黒髪ボブの後頭部（顔・前髪・リボンは出さない）
+    ctx.fillStyle = NAVY; ctx.fillRect(-6, -4, 12, 4.2);
+    ctx.strokeStyle = '#eef3fb'; ctx.lineWidth = 0.5; ctx.strokeRect(-5.3, -3.6, 10.6, 3.0);
+    ctx.fillStyle = HAIR; ctx.fillRect(-5, -12.5, 10, 11);            // 後頭部の黒髪（顔を覆う）
+    ctx.fillStyle = HAIR_HI; ctx.fillRect(-3.4, -12.2, 6.4, 1);       // 天使の輪
+    ctx.fillStyle = SKIN; ctx.fillRect(-2.4, -2.2, 4.8, 1.1);         // うなじ
+  } else {
+    ctx.fillStyle = NAVY; ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(0, 2); ctx.lineTo(6, -4); ctx.lineTo(6, -1); ctx.lineTo(0, 3.4); ctx.lineTo(-6, -1); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#eef3fb'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(-5, -3.2); ctx.lineTo(0, 2); ctx.lineTo(5, -3.2); ctx.moveTo(-5.4, -2.4); ctx.lineTo(0, 2.9); ctx.lineTo(5.4, -2.4); ctx.stroke();
+    // 大きな赤いリボン（蝶結び）
+    ctx.fillStyle = BOW;
+    ctx.beginPath(); ctx.moveTo(0, 0.8); ctx.lineTo(-3.4, -0.6); ctx.lineTo(-3.4, 2.6); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, 0.8); ctx.lineTo(3.4, -0.6); ctx.lineTo(3.4, 2.6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#9a2233'; ctx.fillRect(-0.9, 0.4, 1.8, 2.2);
+    ctx.fillStyle = BOW; ctx.fillRect(-0.7, 2.4, 1.4, 2.4);
+    // 頭（肌）
+    ctx.fillStyle = SKIN; ctx.fillRect(-4.5, -12, 9, 9.5); ctx.fillStyle = SKIN_SH; ctx.fillRect(-4.5, -3.2, 9, 1);
+    // 前髪（ぱっつん）＋サイドの毛束（顔を縁取り）＋天使の輪
+    ctx.fillStyle = HAIR;
+    ctx.fillRect(-5, -12.5, 10, 3.8);
+    ctx.fillRect(-5.4, -11, 1.7, 8.4); ctx.fillRect(3.7, -11, 1.7, 8.4);
+    ctx.beginPath(); ctx.moveTo(-5, -8.8); ctx.lineTo(-2.2, -8.8); ctx.lineTo(-3.6, -6.0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(5, -8.8); ctx.lineTo(2.2, -8.8); ctx.lineTo(3.6, -6.0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = HAIR_HI; ctx.fillRect(-3.4, -12.2, 6.4, 1);
+    // 顔（大きな瞳＋頬の赤み・眼鏡なし）
+    drawFace(ctx, -6.8, 9, 'human', motion, undefined, { bigEyes: true, blush: true });
+    if (motion.sweat) drawSweat(ctx, 5, -9.5, nowS);
+  }
   ctx.restore();
 }
 
@@ -304,9 +322,15 @@ function drawSkeletonBody(ctx, a) {
   ctx.fillStyle = BONE; roundedRect(ctx, -4, 4, 8, 3, 1.5); ctx.fill();
   // 頭蓋骨
   ctx.fillStyle = BONE; ctx.beginPath(); ctx.ellipse(0, -10, 6, 6.5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = BONE_SH; ctx.fillRect(-3, -4.5, 6, 1.5); // 顎下の影
-  drawFace(ctx, -10.5, 9, 'skull', motion);
-  if (motion.sweat) { ctx.fillStyle = 'rgba(155,232,192,0.8)'; drawSweat(ctx, 5, -11, nowS); }
+  if (a.back) {
+    // 後ろ姿：眼窩・顔を描かず、頭蓋の縫合線だけ
+    ctx.strokeStyle = BONE_SH; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(0, -5); ctx.moveTo(-4, -12); ctx.lineTo(4, -12); ctx.stroke();
+  } else {
+    ctx.fillStyle = BONE_SH; ctx.fillRect(-3, -4.5, 6, 1.5); // 顎下の影
+    drawFace(ctx, -10.5, 9, 'skull', motion);
+    if (motion.sweat) { ctx.fillStyle = 'rgba(155,232,192,0.8)'; drawSweat(ctx, 5, -11, nowS); }
+  }
   ctx.restore();
 }
 
@@ -332,9 +356,15 @@ function drawRobotBody(ctx, a) {
   ctx.fillStyle = METAL_SH; ctx.fillRect(-5, -4, 10, 1);
   ctx.strokeStyle = METAL_SH; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, -17); ctx.stroke();
   ctx.fillStyle = ACC; ctx.beginPath(); ctx.arc(0, -17.6, 1.4, 0, Math.PI * 2); ctx.fill();
-  drawFace(ctx, -8.5, 9, 'robot', motion, ACC);
-  if (motion.sweat) { // ロボは汗の代わりに排熱スパーク
-    ctx.fillStyle = 'rgba(255,180,90,0.8)'; ctx.fillRect(5, -10 + ((nowS || 0) % 1) * 3, 1.4, 1.4);
+  if (a.back) {
+    // 後ろ姿：LEDの顔は出さず、背面パネルのライン＋ボルト
+    ctx.fillStyle = METAL_SH; ctx.fillRect(-4, -11, 8, 1); ctx.fillRect(-4, -8, 8, 1);
+    ctx.fillStyle = '#3a4350'; ctx.fillRect(-3.5, -10.5, 1, 1); ctx.fillRect(2.5, -10.5, 1, 1);
+  } else {
+    drawFace(ctx, -8.5, 9, 'robot', motion, ACC);
+    if (motion.sweat) { // ロボは汗の代わりに排熱スパーク
+      ctx.fillStyle = 'rgba(255,180,90,0.8)'; ctx.fillRect(5, -10 + ((nowS || 0) % 1) * 3, 1.4, 1.4);
+    }
   }
   ctx.restore();
 }
@@ -499,6 +529,7 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
   const flip = pl.facing.x < 0 ? -1 : 1;
   const hitFlash = pl.iTime > 0 && (Math.floor(pl.iTime * 20) % 2 === 0);
   const id = pl.drawId || state.charId || 'hero';
+  const back = pl.facing.y < -0.45; // 上を向いている＝後ろ姿（顔を見せない）
 
   // 接地影（拡大した本体の足元に合わせて下げる）
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -517,7 +548,7 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
   ctx.save();
   ctx.scale(BODY_SCALE, BODY_SCALE);
   if (flip < 0) ctx.scale(-1, 1);
-  (BODY[id] || BODY.hero)(ctx, { motion, hitFlash, nowS });
+  (BODY[id] || BODY.hero)(ctx, { motion, hitFlash, nowS, back });
 
   // 状態異常オーバーレイ（本体スケール内で描き、サイズを本体に合わせる）
   if (motion.shock) {
@@ -563,10 +594,11 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
   }
   ctx.restore(); // 本体スケール終わり
 
-  // 構え＋遠隔武器（照準方向・通常スケール＝攻撃判定と整合）
-  ctx.save(); ctx.rotate(ang);
-  ctx.fillStyle = skinOf(id); ctx.fillRect(3, -1.6, 6 - recoil * 0.4, 3.2); // 前腕
+  // 構え＋遠隔武器（手に持つ：本体に合わせて拡大し、照準方向へ前腕を伸ばして握る）
+  ctx.save(); ctx.rotate(ang); ctx.scale(1.6, 1.6);
+  ctx.fillStyle = skinOf(id); ctx.fillRect(1, -1.5, 7 - recoil * 0.3, 3); // 前腕（肩→握り）
   drawWeaponSilhouette(ctx, pl.weapons[pl.curW] || {}, recoil);
+  ctx.fillStyle = skinOf(id); ctx.beginPath(); ctx.arc(7, 0.5, 1.9, 0, Math.PI * 2); ctx.fill(); // 握る手
   if (pl.muzzleT > 0) {
     const def = pl.weapons[pl.curW] || {};
     ctx.fillStyle = def.projType ? (PROJ_COLOR[def.projType] || '#fff1c0') : '#fff1c0';
