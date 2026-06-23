@@ -13,7 +13,8 @@ import { MELEE_SWING } from '../core/constants.js';
 import { CHARACTERS } from '../state/characters.js';
 import { computePlayerMotion, MOTION } from './character-motion.js';
 
-const BODY_SCALE = 1.55; // 図形の拡大率（当たり判定は不変、見た目だけ精緻化）
+const BODY_SCALE = 1.85; // 図形の拡大率（当たり判定は不変、見た目だけ精緻化・大型化）
+const FEET_LOCAL = 12.5;  // 本体ローカルでの足元 y（接地影の位置合わせに使う）
 
 // 遠隔武器の弾種 → 色とシルエット型。
 const PROJ_COLOR = {
@@ -34,12 +35,21 @@ function accentOf(id) { return theme(id).accent || '#e7c23c'; }
 
 // ===== 表情（顔パーツ）=====
 // style: 'human' | 'skull' | 'robot'。motion.primary で目・口を変える。head は (0, hy) 中心、幅 hw。
-function drawFace(ctx, hy, hw, style, motion, eyeColor) {
+function drawFace(ctx, hy, hw, style, motion, eyeColor, opts) {
+  opts = opts || {}; // { blush, bigEyes }
   const m = motion.primary;
   const ex = hw * 0.28;     // 目の左右オフセット
   const ey = hy - 0.5;      // 目の高さ
   const my = hy + hw * 0.42; // 口の高さ
   ctx.lineCap = 'round';
+  // 頬の赤み（参考画像のチビ系）。目より少し下・外側に。
+  if (opts.blush && style !== 'robot') {
+    ctx.fillStyle = 'rgba(255,135,150,0.5)';
+    ctx.beginPath();
+    ctx.ellipse(-ex - 2, ey + 3, 1.9, 1.1, 0, 0, Math.PI * 2);
+    ctx.ellipse(ex + 2, ey + 3, 1.9, 1.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   if (style === 'robot') {
     // バイザー型LED：通常=シアン、被弾/瀕死=赤、弱体=黄。
@@ -93,6 +103,14 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor) {
       ctx.beginPath(); ctx.moveTo(-ex - 1.6, ey - 0.6); ctx.lineTo(-ex + 1.6, ey - 0.6);
       ctx.moveTo(ex - 1.6, ey - 0.6); ctx.lineTo(ex + 1.6, ey - 0.6); ctx.stroke();
       ctx.fillStyle = eyeFill; ctx.fillRect(-ex - 0.8, ey, 1.6, 1.4); ctx.fillRect(ex - 0.8, ey, 1.6, 1.4);
+    } else if (opts.bigEyes) {
+      // 大きな瞳（参考画像準拠）：縦長の黒目＋大小ハイライト
+      ctx.fillStyle = eyeFill;
+      ctx.beginPath(); ctx.ellipse(-ex, ey + 0.3, 2.1, 3.0, 0, 0, Math.PI * 2); ctx.ellipse(ex, ey + 0.3, 2.1, 3.0, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.beginPath(); ctx.arc(-ex - 0.6, ey - 0.7, 1.0, 0, Math.PI * 2); ctx.arc(ex - 0.6, ey - 0.7, 1.0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath(); ctx.arc(-ex + 0.8, ey + 1.2, 0.6, 0, Math.PI * 2); ctx.arc(ex + 0.8, ey + 1.2, 0.6, 0, Math.PI * 2); ctx.fill();
     } else {
       // 通常：丸い瞳＋ハイライト
       ctx.fillStyle = eyeFill;
@@ -206,48 +224,55 @@ function drawMageBody(ctx, a) {
   ctx.restore();
 }
 
-// 女子高生：黒髪ストレート（姫カット風）・清楚・眼鏡っ娘。紺セーラー服＋黒ニーソ。
+// 女子高生：黒髪ボブ・大きな瞳・頬の赤み・赤い大きなリボン・紺プリーツ・黒ニーソ・茶ローファー（参考画像準拠）。
 function drawJkBody(ctx, a) {
   const { motion, hitFlash, nowS } = a;
-  const UNI = hitFlash ? '#ff9aa2' : '#2b3a66', SAILOR = '#eef3fb', SKIRT = '#222b45';
-  const SKIN = '#f2cba6', SKIN_SH = '#d6a878', HAIR = '#17151e', HAIR_HI = '#46415c', RIBBON = '#7a1f2e';
+  const SAILOR = hitFlash ? '#ffd2d6' : '#f4f7fc', NAVY = '#2b3a66', SKIRT = '#222b45';
+  const SKIN = '#f6d3b0', SKIN_SH = '#e0b088', HAIR = '#15131c', HAIR_HI = '#403a52', BOW = '#d23a4a';
   const { ox, oy } = upperOffset(motion);
-  // 脚：黒ニーソ＋膝の素肌＋ローファー（清楚）
-  ctx.fillStyle = '#1c1e28'; ctx.fillRect(-4, 6, 3, 6); ctx.fillRect(1, 6, 3, 6);
-  ctx.fillStyle = SKIN; ctx.fillRect(-4, 5, 3, 1.6); ctx.fillRect(1, 5, 3, 1.6);
-  ctx.fillStyle = '#0f1016'; ctx.fillRect(-4.3, 11, 3.6, 2); ctx.fillRect(0.7, 11, 3.6, 2);
-  // スカート：紺プリーツ（陰影で襞を表現）
+  // 脚：膝の素肌＋黒ニーソ＋茶ローファー
+  ctx.fillStyle = SKIN; ctx.fillRect(-4, 5, 3, 2); ctx.fillRect(1, 5, 3, 2);
+  ctx.fillStyle = '#16181f'; ctx.fillRect(-4, 6.5, 3, 5.5); ctx.fillRect(1, 6.5, 3, 5.5);
+  ctx.fillStyle = '#5a3a22'; ctx.fillRect(-4.4, 11.5, 3.8, 2); ctx.fillRect(0.6, 11.5, 3.8, 2);
+  ctx.fillStyle = '#7a5230'; ctx.fillRect(-4.4, 11.5, 3.8, 0.8); ctx.fillRect(0.6, 11.5, 3.8, 0.8);
+  // スカート：紺プリーツ
   ctx.fillStyle = SKIRT; ctx.beginPath(); ctx.moveTo(-7, 7); ctx.lineTo(-5, 0.5); ctx.lineTo(5, 0.5); ctx.lineTo(7, 7); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#19203a';
   for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 2.7, 1.5); ctx.lineTo(i * 2.7 + 0.9, 7); ctx.lineTo(i * 2.7 - 0.9, 7); ctx.closePath(); ctx.fill(); }
   ctx.save(); ctx.translate(ox, oy);
-  // 腕（袖の紺ライン＋手）
-  ctx.fillStyle = SAILOR; ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
-  ctx.fillStyle = '#2b3a66'; ctx.fillRect(-8, -2, 3, 1.3); ctx.fillRect(5, -2, 3, 1.3);
-  ctx.fillStyle = SKIN; ctx.fillRect(-8, 4.6, 3, 2); ctx.fillRect(5, 4.6, 3, 2);
-  // 胴：セーラー服＋セーラー襟（白ライン）＋えんじ色リボン（控えめ＝清楚）
-  ctx.fillStyle = SAILOR; ctx.fillRect(-6, -4, 12, 9);
-  ctx.fillStyle = UNI; ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(0, 1.5); ctx.lineTo(6, -4); ctx.lineTo(6, -2); ctx.lineTo(0, 3); ctx.lineTo(-6, -2); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = '#dfe7f5'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(-5, -3); ctx.lineTo(0, 1.6); ctx.lineTo(5, -3); ctx.stroke();
-  ctx.fillStyle = RIBBON; ctx.beginPath(); ctx.moveTo(0, 0.6); ctx.lineTo(-2.6, 2.6); ctx.lineTo(0, 1.8); ctx.lineTo(2.6, 2.6); ctx.closePath(); ctx.fill();
-  // 頭
-  ctx.fillStyle = SKIN; ctx.fillRect(-5, -13, 10, 10); ctx.fillStyle = SKIN_SH; ctx.fillRect(-5, -4, 10, 1);
-  // 黒髪：まっすぐ前髪＋肩まで伸びる長いサイド（姫カット風）＋天使の輪
+  // 後ろ髪（ボブ：頭より広い丸い塊。最背面）
   ctx.fillStyle = HAIR;
-  ctx.fillRect(-6, -14, 12, 5);            // 前髪の塊
-  ctx.fillRect(-6.5, -13, 2.6, 13);        // 左サイド（長い）
-  ctx.fillRect(3.9, -13, 2.6, 13);         // 右サイド
-  ctx.fillRect(-4, -9.4, 8, 1.5);          // 前髪の直線的な毛先
-  ctx.fillStyle = HAIR_HI; ctx.fillRect(-3.5, -13.4, 6.5, 1); // 天使の輪
-  // 顔（表情はモーション依存）
-  drawFace(ctx, -8.5, 9, 'human', motion);
-  // 眼鏡（清楚眼鏡っ娘）：目の上に薄いフレーム＋レンズの光
-  ctx.strokeStyle = '#2a2f3a'; ctx.lineWidth = 0.8;
-  ctx.strokeRect(-4.3, -9.2, 3.4, 3.0); ctx.strokeRect(0.9, -9.2, 3.4, 3.0);
-  ctx.beginPath(); ctx.moveTo(-0.9, -7.9); ctx.lineTo(0.9, -7.9); ctx.stroke();   // ブリッジ
-  ctx.strokeStyle = 'rgba(190,215,255,0.55)'; ctx.lineWidth = 0.7;
-  ctx.beginPath(); ctx.moveTo(-3.9, -8.9); ctx.lineTo(-2.6, -8.9); ctx.stroke();  // レンズの反射光
-  if (motion.sweat) drawSweat(ctx, 5, -9, nowS);
+  ctx.beginPath();
+  ctx.moveTo(-7, -11); ctx.quadraticCurveTo(-8.5, -3, -5.5, -0.5);
+  ctx.lineTo(5.5, -0.5); ctx.quadraticCurveTo(8.5, -3, 7, -11);
+  ctx.quadraticCurveTo(0, -18.5, -7, -11); ctx.closePath(); ctx.fill();
+  // 腕（袖口の紺＋手）
+  ctx.fillStyle = SAILOR; ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
+  ctx.fillStyle = NAVY; ctx.fillRect(-8, -2, 3, 1.2); ctx.fillRect(5, -2, 3, 1.2);
+  ctx.fillStyle = SKIN; ctx.fillRect(-8, 4.6, 3, 2); ctx.fillRect(5, 4.6, 3, 2);
+  // 胴：白セーラー＋紺の大きな襟＋白2本ライン
+  ctx.fillStyle = SAILOR; ctx.fillRect(-6, -4, 12, 9);
+  ctx.fillStyle = NAVY; ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(0, 2); ctx.lineTo(6, -4); ctx.lineTo(6, -1); ctx.lineTo(0, 3.4); ctx.lineTo(-6, -1); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#eef3fb'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(-5, -3.2); ctx.lineTo(0, 2); ctx.lineTo(5, -3.2); ctx.moveTo(-5.4, -2.4); ctx.lineTo(0, 2.9); ctx.lineTo(5.4, -2.4); ctx.stroke();
+  // 大きな赤いリボン（蝶結び）
+  ctx.fillStyle = BOW;
+  ctx.beginPath(); ctx.moveTo(0, 0.8); ctx.lineTo(-3.4, -0.6); ctx.lineTo(-3.4, 2.6); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, 0.8); ctx.lineTo(3.4, -0.6); ctx.lineTo(3.4, 2.6); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#9a2233'; ctx.fillRect(-0.9, 0.4, 1.8, 2.2);
+  ctx.fillStyle = BOW; ctx.fillRect(-0.7, 2.4, 1.4, 2.4);
+  // 頭（肌）
+  ctx.fillStyle = SKIN; ctx.fillRect(-4.5, -12, 9, 9.5); ctx.fillStyle = SKIN_SH; ctx.fillRect(-4.5, -3.2, 9, 1);
+  // 前髪（ぱっつん）＋サイドの毛束（顔を縁取り）＋天使の輪
+  ctx.fillStyle = HAIR;
+  ctx.fillRect(-5, -12.5, 10, 3.8);
+  ctx.fillRect(-5.4, -11, 1.7, 8.4); ctx.fillRect(3.7, -11, 1.7, 8.4);
+  ctx.beginPath(); ctx.moveTo(-5, -8.8); ctx.lineTo(-2.2, -8.8); ctx.lineTo(-3.6, -6.0); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(5, -8.8); ctx.lineTo(2.2, -8.8); ctx.lineTo(3.6, -6.0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = HAIR_HI; ctx.fillRect(-3.4, -12.2, 6.4, 1);
+  // 顔（大きな瞳＋頬の赤み・眼鏡なし）
+  drawFace(ctx, -7.2, 9, 'human', motion, undefined, { bigEyes: true, blush: true });
+  if (motion.sweat) drawSweat(ctx, 5, -9.5, nowS);
   ctx.restore();
 }
 
@@ -468,9 +493,9 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
   const hitFlash = pl.iTime > 0 && (Math.floor(pl.iTime * 20) % 2 === 0);
   const id = pl.drawId || state.charId || 'hero';
 
-  // 接地影
+  // 接地影（拡大した本体の足元に合わせて下げる）
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath(); ctx.ellipse(ix, iy + pl.h / 2 - 1, pl.w * 0.5, pl.h * 0.18, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(ix, iy + FEET_LOCAL * BODY_SCALE, pl.w * 0.62, pl.h * 0.2, 0, 0, Math.PI * 2); ctx.fill();
 
   // ダッシュ残像（キャラのアクセント色）
   if (pl.isDashing) {
@@ -486,9 +511,8 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
   ctx.scale(BODY_SCALE, BODY_SCALE);
   if (flip < 0) ctx.scale(-1, 1);
   (BODY[id] || BODY.hero)(ctx, { motion, hitFlash, nowS });
-  ctx.restore();
 
-  // 状態異常オーバーレイ（全キャラ共通・本体ローカル空間）
+  // 状態異常オーバーレイ（本体スケール内で描き、サイズを本体に合わせる）
   if (motion.shock) {
     // 体を取り巻く電撃アーク＋強発光時の白フラッシュ
     ctx.save();
@@ -530,6 +554,7 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
       ctx.beginPath(); ctx.ellipse(fx2, -4 - ph * 20, 2.4 * (1 - ph * 0.5), 4 * (1 - ph * 0.4), 0, 0, Math.PI * 2); ctx.fill();
     }
   }
+  ctx.restore(); // 本体スケール終わり
 
   // 構え＋遠隔武器（照準方向・通常スケール＝攻撃判定と整合）
   ctx.save(); ctx.rotate(ang);
