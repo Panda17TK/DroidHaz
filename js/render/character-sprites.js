@@ -104,13 +104,20 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor, opts) {
       ctx.moveTo(ex - 1.6, ey - 0.6); ctx.lineTo(ex + 1.6, ey - 0.6); ctx.stroke();
       ctx.fillStyle = eyeFill; ctx.fillRect(-ex - 0.8, ey, 1.6, 1.4); ctx.fillRect(ex - 0.8, ey, 1.6, 1.4);
     } else if (opts.bigEyes) {
-      // 大きな瞳（参考画像準拠）：縦長の黒目＋大小ハイライト
-      ctx.fillStyle = eyeFill;
-      ctx.beginPath(); ctx.ellipse(-ex, ey + 0.3, 2.1, 3.0, 0, 0, Math.PI * 2); ctx.ellipse(ex, ey + 0.3, 2.1, 3.0, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.beginPath(); ctx.arc(-ex - 0.6, ey - 0.7, 1.0, 0, Math.PI * 2); ctx.arc(ex - 0.6, ey - 0.7, 1.0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.beginPath(); ctx.arc(-ex + 0.8, ey + 1.2, 0.6, 0, Math.PI * 2); ctx.arc(ex + 0.8, ey + 1.2, 0.6, 0, Math.PI * 2); ctx.fill();
+      // 自然な少女の目：白目＋茶の虹彩＋瞳孔＋ハイライト＋上まつげ（左右対称に描く）
+      for (const sgn of [-1, 1]) {
+        const cxp = ex * sgn;
+        ctx.fillStyle = '#fbfdff';                                   // 白目
+        ctx.beginPath(); ctx.ellipse(cxp, ey + 0.5, 1.7, 2.0, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#4a3a2b';                                   // 虹彩（やや下）
+        ctx.beginPath(); ctx.ellipse(cxp, ey + 0.9, 1.15, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1b1510';                                   // 瞳孔
+        ctx.beginPath(); ctx.ellipse(cxp, ey + 1.0, 0.6, 0.85, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';                    // ハイライト
+        ctx.beginPath(); ctx.arc(cxp - 0.55, ey + 0.1, 0.55, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#241a13'; ctx.lineWidth = 0.9;            // 上まつげ
+        ctx.beginPath(); ctx.ellipse(cxp, ey + 0.5, 1.8, 2.1, 0, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+      }
     } else {
       // 通常：丸い瞳＋ハイライト
       ctx.fillStyle = eyeFill;
@@ -271,7 +278,7 @@ function drawJkBody(ctx, a) {
   ctx.beginPath(); ctx.moveTo(5, -8.8); ctx.lineTo(2.2, -8.8); ctx.lineTo(3.6, -6.0); ctx.closePath(); ctx.fill();
   ctx.fillStyle = HAIR_HI; ctx.fillRect(-3.4, -12.2, 6.4, 1);
   // 顔（大きな瞳＋頬の赤み・眼鏡なし）
-  drawFace(ctx, -7.2, 9, 'human', motion, undefined, { bigEyes: true, blush: true });
+  drawFace(ctx, -6.8, 9, 'human', motion, undefined, { bigEyes: true, blush: true });
   if (motion.sweat) drawSweat(ctx, 5, -9.5, nowS);
   ctx.restore();
 }
