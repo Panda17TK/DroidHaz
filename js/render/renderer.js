@@ -34,6 +34,24 @@ function hexToRgba(hex, alpha) {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
 }
 
+// プレイヤー頭上の吹き出し（ダメージ/息切れボイス）。screen 空間で描く（フォント可読性のため）。
+function drawSpeechBubble(ctx, x, y, text, alpha, kind) {
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.font = 'bold 13px ui-sans-serif, system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const w = Math.max(30, ctx.measureText(text).width + 16), h = 22;
+  const by = y - h;
+  const accent = kind === 'shock' ? '#bfe9ff' : kind === 'poison' ? '#9be86a'
+    : kind === 'burn' ? '#ff9a5a' : kind === 'breath' ? '#cdd8ea' : '#ffb0b0';
+  ctx.fillStyle = 'rgba(14,20,28,0.92)'; ctx.strokeStyle = accent; ctx.lineWidth = 1.5;
+  roundedRect(ctx, x - w / 2, by, w, h, 6); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(14,20,28,0.92)';
+  ctx.beginPath(); ctx.moveTo(x - 5, by + h - 0.5); ctx.lineTo(x, by + h + 6); ctx.lineTo(x + 5, by + h - 0.5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#eef3fb'; ctx.fillText(text, x, by + h / 2);
+  ctx.restore();
+}
+
 // 補間描画位置：直近ステップの px0/py0 から現在位置へ alpha で線形補間。
 // px0 が無い（生成直後/初回）の場合は現在位置をそのまま使う。
 function rx(ent, a) { return (ent.px0 == null) ? ent.x : ent.px0 + (ent.x - ent.px0) * a; }
@@ -419,6 +437,17 @@ export function renderFrame(ctx, canvas, state) {
     ctx.fillRect(-W / 2, -H / 2, W, H);
     ctx.globalAlpha = 1;
     ctx.restore();
+  }
+
+  // プレイヤー頭上の吹き出し（ダメージ/息切れボイス）
+  if (state.playerVoice) {
+    const v = state.playerVoice;
+    const va = 1 - v.t / v.life;
+    if (va > 0) {
+      const psx = (rx(state.player, A) - camX) * zoom;
+      const psy = (ry(state.player, A) - camY) * zoom - 26 - (1 - va) * 10;
+      drawSpeechBubble(ctx, psx, psy, v.text, va, v.kind);
+    }
   }
 
   // ボス撃破キルカム：レターボックス＋テキスト

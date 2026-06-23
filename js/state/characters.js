@@ -12,11 +12,12 @@ import { CONFIG } from '../core/config.js';
 
 // 遠隔武器のアーキタイプ（hero の5種に対応。バランスはこれに準拠）。
 //  single=拳銃 / spread=ショットガン / rapid=MG / beam=ビーム(貫通) / aoe=グレネード(爆発)
-function single(o) { return Object.assign({ dmg: 34, fireRate: 0.22, magSize: 12, mag: 12, spread: 0.05, pellets: 1, ammoType: 'ammo9' }, o); }
-function spread(o) { return Object.assign({ dmg: 22, fireRate: 0.60, magSize: 6, mag: 6, spread: 0.25, pellets: 6, ammoType: 'ammo12' }, o); }
-function rapid(o)  { return Object.assign({ dmg: 17, fireRate: 0.08, magSize: 40, mag: 40, spread: 0.12, pellets: 1, ammoType: 'ammo9' }, o); }
+// autoReloadDelay: オートリロードまでの秒数（弾倉の大きさ/重さに合わせて自然に設定）。
+function single(o) { return Object.assign({ dmg: 34, fireRate: 0.22, magSize: 12, mag: 12, spread: 0.05, pellets: 1, ammoType: 'ammo9', autoReloadDelay: 1.2 }, o); }
+function spread(o) { return Object.assign({ dmg: 22, fireRate: 0.60, magSize: 6, mag: 6, spread: 0.25, pellets: 6, ammoType: 'ammo12', autoReloadDelay: 2.4 }, o); }
+function rapid(o)  { return Object.assign({ dmg: 17, fireRate: 0.08, magSize: 40, mag: 40, spread: 0.12, pellets: 1, ammoType: 'ammo9', autoReloadDelay: 3.2 }, o); }
 function beam(o)   { return Object.assign({ dmg: 110, fireRate: 0.60, magSize: null, mag: 0, spread: 0, pellets: 1, ammoType: 'ammoBeam', pierce: true }, o); }
-function aoe(o)    { return Object.assign({ dmg: 0, fireRate: 0.90, magSize: 1, mag: 1, spread: 0, pellets: 1, ammoType: 'ammoNade', aoe: true }, o); }
+function aoe(o)    { return Object.assign({ dmg: 0, fireRate: 0.90, magSize: 1, mag: 1, spread: 0, pellets: 1, ammoType: 'ammoNade', aoe: true, autoReloadDelay: 1.6 }, o); }
 
 export const CHARACTERS = {
   hero: {

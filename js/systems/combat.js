@@ -13,6 +13,7 @@ import { hurtMob } from './combat-core.js';
 import { doMelee } from './melee.js';
 import { updateBullets, updateGrenades, updateEnemyBullets, updateSlashes } from './projectiles.js';
 import { pickAutoTarget } from './autoaim.js';
+import { classifyDamageVoice, triggerDamageVoice, triggerBreathVoice, updateVoice } from './voices.js';
 
 // dev-editor で編集された CONFIG.weapons の攻撃ステータスを runtime 武器に同期する。
 // mag/magSize/_autoRT 等のランタイム/構造フィールドは触らず、数値ステータスのみ反映。
@@ -142,6 +143,7 @@ export function updateCombat(state, dt, bus, input, audio) {
   if (p.shockT > 0) { p.shockT -= dt; if (p.shockT < 0) p.shockT = 0; }
   if (p.poisonT > 0) { p.poisonT -= dt; if (p.poisonT < 0) p.poisonT = 0; p.hp -= (CONFIG.player.poisonDps || 0) * dt; }
   if (p.burnT > 0) { p.burnT -= dt; if (p.burnT < 0) p.burnT = 0; p.hp -= (CONFIG.player.burnDps || 0) * dt; }
+  updateVoice(state, dt); // ダメージ/息切れボイス吹き出しの寿命
   // マズル/反動の減衰（描画用）
   if (p.muzzleT > 0) { p.muzzleT -= dt; if (p.muzzleT < 0) p.muzzleT = 0; }
   if (p.meleeT > 0) { p.meleeT -= dt; if (p.meleeT < 0) p.meleeT = 0; }
@@ -198,6 +200,8 @@ export function updateCombat(state, dt, bus, input, audio) {
     }
   }
   p.sta = dash ? Math.max(0, p.sta - CONFIG.player.staDrain * dt) : Math.min(p.staMax, p.sta + CONFIG.player.staRegen * dt);
+  // 息切れボイス：スタミナ低下中に一定間隔で吹き出し。
+  if (!state.gameOver && (p.sta / (p.staMax || 100)) <= 0.20) triggerBreathVoice(state, dt);
 
   p.vx *= Math.pow(0.001, dt); p.vy *= Math.pow(0.001, dt);
   vx += p.vx * dt; vy += p.vy * dt;
@@ -313,9 +317,9 @@ export function updateCombat(state, dt, bus, input, audio) {
       if (shotThisFrame || input.pressed('k')) {
         w._autoRT = 0; // 射撃中はリセット
       } else {
-        // 射撃を止めて2秒経過したら、予備弾から自動リロード
+        // 射撃を止めて autoReloadDelay 秒経過したら、予備弾から自動リロード（銃種で秒数が異なる）
         w._autoRT = (w._autoRT || 0) + dt;
-        if (w._autoRT >= 2.0) {
+        if (w._autoRT >= (w.autoReloadDelay || 2.0)) {
           reload(state, bus);
           w._autoRT = 0;
         }
@@ -334,8 +338,16 @@ export function updateCombat(state, dt, bus, input, audio) {
   // 開発者モードのゴッドモード：HPを満タンに固定
   if (state.devGod) p.hp = p.hpMax || 100;
   p.hp = clamp(p.hp, 0, p.hpMax || 100);
-  // 弱体化トリガ：このフレームで HP が減った（被弾）なら weakT をセット（弱体化モーション）。
+  // 被弾検出：HP 減少量と状態異常の立ち上がりから、弱体化トリガ＋ダメージボイスを決める。
   if (p._hpPrev == null) p._hpPrev = p.hp;
-  if (p.hp < p._hpPrev - 0.001 && !state.gameOver) p.weakT = CONFIG.player.weakDur || 1.2;
-  p._hpPrev = p.hp;
+  if (p._shockPrev == null) { p._shockPrev = 0; p._poisonPrev = 0; p._burnPrev = 0; }
+  const drop = p._hpPrev - p.hp;
+  const shockRose = p.shockT > (p._shockPrev || 0) + 0.001;
+  const poisonRose = p.poisonT > (p._poisonPrev || 0) + 0.001;
+  const burnRose = p.burnT > (p._burnPrev || 0) + 0.001;
+  if (drop > 0.001 && !state.gameOver) p.weakT = CONFIG.player.weakDur || 1.2;
+  if (!state.gameOver) {
+    triggerDamageVoice(state, classifyDamageVoice({ drop, shockRose, poisonRose, burnRose }));
+  }
+  p._hpPrev = p.hp; p._shockPrev = p.shockT; p._poisonPrev = p.poisonT; p._burnPrev = p.burnT;
 }

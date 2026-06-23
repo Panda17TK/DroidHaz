@@ -206,34 +206,47 @@ function drawMageBody(ctx, a) {
   ctx.restore();
 }
 
+// 女子高生：黒髪ストレート（姫カット風）・清楚・眼鏡っ娘。紺セーラー服＋黒ニーソ。
 function drawJkBody(ctx, a) {
   const { motion, hitFlash, nowS } = a;
-  const UNI = hitFlash ? '#ff9aa2' : '#2b3a66', SAILOR = '#eef3fb', SKIRT = '#26324f';
-  const SKIN = '#f2cba6', HAIR = '#6b4a2e', RIBBON = '#ff5a7a';
+  const UNI = hitFlash ? '#ff9aa2' : '#2b3a66', SAILOR = '#eef3fb', SKIRT = '#222b45';
+  const SKIN = '#f2cba6', SKIN_SH = '#d6a878', HAIR = '#17151e', HAIR_HI = '#46415c', RIBBON = '#7a1f2e';
   const { ox, oy } = upperOffset(motion);
-  // 脚（素足＋ローファー）
-  ctx.fillStyle = SKIN; ctx.fillRect(-4, 7, 3, 5); ctx.fillRect(1, 7, 3, 5);
-  ctx.fillStyle = '#3a2a1c'; ctx.fillRect(-4, 11, 3, 2); ctx.fillRect(1, 11, 3, 2);
-  // スカート（プリーツ）
-  ctx.fillStyle = SKIRT; ctx.beginPath(); ctx.moveTo(-7, 7); ctx.lineTo(-5, 1); ctx.lineTo(5, 1); ctx.lineTo(7, 7); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = '#1a2336'; ctx.lineWidth = 0.6;
-  for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i * 3, 2); ctx.lineTo(i * 3, 7); ctx.stroke(); }
+  // 脚：黒ニーソ＋膝の素肌＋ローファー（清楚）
+  ctx.fillStyle = '#1c1e28'; ctx.fillRect(-4, 6, 3, 6); ctx.fillRect(1, 6, 3, 6);
+  ctx.fillStyle = SKIN; ctx.fillRect(-4, 5, 3, 1.6); ctx.fillRect(1, 5, 3, 1.6);
+  ctx.fillStyle = '#0f1016'; ctx.fillRect(-4.3, 11, 3.6, 2); ctx.fillRect(0.7, 11, 3.6, 2);
+  // スカート：紺プリーツ（陰影で襞を表現）
+  ctx.fillStyle = SKIRT; ctx.beginPath(); ctx.moveTo(-7, 7); ctx.lineTo(-5, 0.5); ctx.lineTo(5, 0.5); ctx.lineTo(7, 7); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#19203a';
+  for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 2.7, 1.5); ctx.lineTo(i * 2.7 + 0.9, 7); ctx.lineTo(i * 2.7 - 0.9, 7); ctx.closePath(); ctx.fill(); }
   ctx.save(); ctx.translate(ox, oy);
-  // 腕
+  // 腕（袖の紺ライン＋手）
   ctx.fillStyle = SAILOR; ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
-  ctx.fillStyle = SKIN; ctx.fillRect(-8, 4, 3, 2); ctx.fillRect(5, 4, 3, 2);
-  // 胴（セーラー服）
-  ctx.fillStyle = SAILOR; ctx.fillRect(-6, -4, 12, 8);
-  ctx.fillStyle = UNI; ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(0, 1); ctx.lineTo(6, -4); ctx.lineTo(6, -2); ctx.lineTo(0, 2.5); ctx.lineTo(-6, -2); ctx.closePath(); ctx.fill(); // 襟
-  ctx.fillStyle = RIBBON; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-2.4, 2.2); ctx.lineTo(0, 1.5); ctx.lineTo(2.4, 2.2); ctx.closePath(); ctx.fill(); // リボン
+  ctx.fillStyle = '#2b3a66'; ctx.fillRect(-8, -2, 3, 1.3); ctx.fillRect(5, -2, 3, 1.3);
+  ctx.fillStyle = SKIN; ctx.fillRect(-8, 4.6, 3, 2); ctx.fillRect(5, 4.6, 3, 2);
+  // 胴：セーラー服＋セーラー襟（白ライン）＋えんじ色リボン（控えめ＝清楚）
+  ctx.fillStyle = SAILOR; ctx.fillRect(-6, -4, 12, 9);
+  ctx.fillStyle = UNI; ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(0, 1.5); ctx.lineTo(6, -4); ctx.lineTo(6, -2); ctx.lineTo(0, 3); ctx.lineTo(-6, -2); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#dfe7f5'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(-5, -3); ctx.lineTo(0, 1.6); ctx.lineTo(5, -3); ctx.stroke();
+  ctx.fillStyle = RIBBON; ctx.beginPath(); ctx.moveTo(0, 0.6); ctx.lineTo(-2.6, 2.6); ctx.lineTo(0, 1.8); ctx.lineTo(2.6, 2.6); ctx.closePath(); ctx.fill();
   // 頭
-  ctx.fillStyle = SKIN; ctx.fillRect(-5, -13, 10, 10);
-  // 髪（前髪＋サイドテール）
-  ctx.fillStyle = HAIR; ctx.fillRect(-6, -14, 12, 5);
-  ctx.fillRect(-6, -14, 2, 9); ctx.fillRect(4, -14, 2, 9);
-  ctx.beginPath(); ctx.ellipse(-7, -6, 1.8, 4, 0, 0, Math.PI * 2); ctx.ellipse(7, -6, 1.8, 4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = RIBBON; ctx.fillRect(-8, -9, 2.4, 2); ctx.fillRect(5.6, -9, 2.4, 2); // 髪留め
+  ctx.fillStyle = SKIN; ctx.fillRect(-5, -13, 10, 10); ctx.fillStyle = SKIN_SH; ctx.fillRect(-5, -4, 10, 1);
+  // 黒髪：まっすぐ前髪＋肩まで伸びる長いサイド（姫カット風）＋天使の輪
+  ctx.fillStyle = HAIR;
+  ctx.fillRect(-6, -14, 12, 5);            // 前髪の塊
+  ctx.fillRect(-6.5, -13, 2.6, 13);        // 左サイド（長い）
+  ctx.fillRect(3.9, -13, 2.6, 13);         // 右サイド
+  ctx.fillRect(-4, -9.4, 8, 1.5);          // 前髪の直線的な毛先
+  ctx.fillStyle = HAIR_HI; ctx.fillRect(-3.5, -13.4, 6.5, 1); // 天使の輪
+  // 顔（表情はモーション依存）
   drawFace(ctx, -8.5, 9, 'human', motion);
+  // 眼鏡（清楚眼鏡っ娘）：目の上に薄いフレーム＋レンズの光
+  ctx.strokeStyle = '#2a2f3a'; ctx.lineWidth = 0.8;
+  ctx.strokeRect(-4.3, -9.2, 3.4, 3.0); ctx.strokeRect(0.9, -9.2, 3.4, 3.0);
+  ctx.beginPath(); ctx.moveTo(-0.9, -7.9); ctx.lineTo(0.9, -7.9); ctx.stroke();   // ブリッジ
+  ctx.strokeStyle = 'rgba(190,215,255,0.55)'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(-3.9, -8.9); ctx.lineTo(-2.6, -8.9); ctx.stroke();  // レンズの反射光
   if (motion.sweat) drawSweat(ctx, 5, -9, nowS);
   ctx.restore();
 }
