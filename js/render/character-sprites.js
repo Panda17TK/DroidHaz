@@ -165,6 +165,19 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor, opts) {
     }
   }
 
+  // 優しげな眉（細く柔らかいアーチ・外側がやや下がる）。bigEyes 系（女子高生）用。顔は前髪の後に描かれるので前髪の上に乗る。
+  if (opts.brows) {
+    ctx.strokeStyle = '#6e5a4a'; ctx.lineWidth = 0.85; ctx.lineCap = 'round';
+    const by = ey - 1.9;
+    for (const sgn of [-1, 1]) {
+      if (sgn === -1 && farK === 0) continue;
+      ctx.save(); eyeXform(sgn);
+      const cxp = ex * sgn, inX = cxp - 1.5 * sgn, outX = cxp + 1.5 * sgn;
+      ctx.beginPath(); ctx.moveTo(inX, by - 0.1); ctx.quadraticCurveTo(cxp, by - 0.8, outX, by + 0.5); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   // 鼻先（横向きのみ・skull以外）：顔の手前端に小さな三角。
   if (profile && style !== 'skull') {
     ctx.fillStyle = (eyeColor && style !== 'robot') ? '#d8a87f' : '#d8a87f';
@@ -351,7 +364,7 @@ function drawJkBody(ctx, a) {
     ctx.beginPath(); ctx.moveTo(5, -8.8); ctx.lineTo(2.2, -8.8); ctx.lineTo(3.6, -6.0); ctx.closePath(); ctx.fill();
     ctx.fillStyle = HAIR_HI; ctx.fillRect(-3.4, -12.2, 6.4, 1);
     // 顔（大きな瞳＋頬の赤み・眼鏡なし）
-    drawFace(ctx, -6.8, 9, 'human', motion, undefined, { bigEyes: true, blush: true, orient });
+    drawFace(ctx, -6.8, 9, 'human', motion, undefined, { bigEyes: true, brows: true, orient });
     if (motion.sweat) drawSweat(ctx, 5, -9.5, nowS);
   }
   ctx.restore();
