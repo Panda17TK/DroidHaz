@@ -38,6 +38,28 @@ export function spawnBleedFX(state, x, y, n = 4) {
 	}
 }
 
+// 電撃ヒット：放射状の電撃アーク（短命）＋火花。
+export function spawnShockFX(state, x, y) {
+	state.fx.push({ type: 'shockarc', x, y, t: 0, life: 0.3, seed: Math.random() * Math.PI * 2 });
+	const n = fxCount(5, state.fxDensity);
+	for (let i = 0; i < n; i++) {
+		const a = Math.random() * Math.PI * 2, sp = 70 + Math.random() * 130;
+		state.fx.push({ type: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: 0.18 });
+	}
+}
+
+// 毒ヒット/継続：緑の半透明パフがふわっと上昇。
+export function spawnPoisonFX(state, x, y) {
+	const n = fxCount(5, state.fxDensity);
+	for (let i = 0; i < n; i++) {
+		const a = Math.random() * Math.PI * 2, sp = 12 + Math.random() * 30;
+		state.fx.push({
+			type: 'poison', x: x + (Math.random() * 8 - 4), y: y + (Math.random() * 8 - 4),
+			vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 18, t: 0, life: 0.6, r: 3 + Math.random() * 3,
+		});
+	}
+}
+
 // ダメージ数字ポップ
 export function spawnDamageNumber(state, x, y, dmg, opts) {
 	opts = opts || {};

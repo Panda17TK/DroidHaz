@@ -44,6 +44,7 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor) {
   if (style === 'robot') {
     // バイザー型LED：通常=シアン、被弾/瀕死=赤、弱体=黄。
     const led = (m === MOTION.HURT || m === MOTION.DYING) ? '#ff5a6a'
+      : (m === MOTION.SHOCK) ? '#eaffff' : (m === MOTION.POISON) ? '#8bd86a'
       : (m === MOTION.WEAK) ? '#ffd86a' : (eyeColor || '#5ad1ff');
     ctx.fillStyle = '#10161e'; roundedRect(ctx, -ex - 2.2, ey - 2.2, ex * 2 + 4.4, 4.4, 1.5); ctx.fill();
     if (m === MOTION.DYING || motion.dead) { // 点滅消灯気味
@@ -65,7 +66,7 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor) {
     ctx.fillStyle = '#0a0d12';
     ctx.beginPath(); ctx.ellipse(-ex, ey, 2.4, 2.8, 0, 0, Math.PI * 2); ctx.ellipse(ex, ey, 2.4, 2.8, 0, 0, Math.PI * 2); ctx.fill();
     if (m !== MOTION.DYING && !motion.dead) {
-      ctx.fillStyle = (m === MOTION.HURT) ? '#ff7a7a' : (m === MOTION.WEAK ? '#ffd86a' : '#9be8c0');
+      ctx.fillStyle = (m === MOTION.HURT) ? '#ff7a7a' : (m === MOTION.SHOCK) ? '#eaffff' : (m === MOTION.POISON) ? '#8bd86a' : (m === MOTION.WEAK ? '#ffd86a' : '#9be8c0');
       ctx.fillRect(-ex - 0.7, ey - 0.7, 1.4, 1.4); ctx.fillRect(ex - 0.7, ey - 0.7, 1.4, 1.4);
     }
   }
@@ -82,8 +83,12 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor) {
     ctx.moveTo(ex - 1.4, ey + k); ctx.lineTo(ex + 1.4, ey - k);
     ctx.stroke();
   } else if (style !== 'skull') {
-    if (m === MOTION.WEAK || m === MOTION.BREATH) {
-      // 半目（疲れ目：上まぶたの線＋小さな瞳）
+    if (m === MOTION.SHOCK) {
+      // 見開いた目（感電で目を見開く）
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(-ex - 1.7, ey - 1.9, 3.4, 3.8); ctx.fillRect(ex - 1.7, ey - 1.9, 3.4, 3.8);
+      ctx.fillStyle = eyeFill; ctx.fillRect(-ex - 0.6, ey - 0.4, 1.4, 1.6); ctx.fillRect(ex - 0.6, ey - 0.4, 1.4, 1.6);
+    } else if (m === MOTION.WEAK || m === MOTION.BREATH || m === MOTION.POISON) {
+      // 半目（疲れ目／具合悪そう：上まぶたの線＋小さな瞳）
       ctx.strokeStyle = eyeFill; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(-ex - 1.6, ey - 0.6); ctx.lineTo(-ex + 1.6, ey - 0.6);
       ctx.moveTo(ex - 1.6, ey - 0.6); ctx.lineTo(ex + 1.6, ey - 0.6); ctx.stroke();
@@ -110,8 +115,11 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor) {
   } else if (m === MOTION.DYING || motion.dead) {
     // 食いしばり（ギザ口）
     ctx.beginPath(); ctx.moveTo(-2.4, my); ctx.lineTo(-1.2, my + 1.2); ctx.lineTo(0, my); ctx.lineTo(1.2, my + 1.2); ctx.lineTo(2.4, my); ctx.stroke();
-  } else if (m === MOTION.WEAK) {
-    // へにゃり口（波）
+  } else if (m === MOTION.SHOCK) {
+    // 食いしばり（感電のギザ口）
+    ctx.beginPath(); ctx.moveTo(-2.4, my); ctx.lineTo(-1.2, my + 1.2); ctx.lineTo(0, my); ctx.lineTo(1.2, my + 1.2); ctx.lineTo(2.4, my); ctx.stroke();
+  } else if (m === MOTION.WEAK || m === MOTION.POISON) {
+    // へにゃり口（具合悪そう）
     ctx.beginPath(); ctx.moveTo(-2.2, my); ctx.quadraticCurveTo(0, my + 1.6, 2.2, my); ctx.stroke();
   } else {
     ctx.beginPath(); ctx.moveTo(-1.6, my); ctx.lineTo(1.6, my); ctx.stroke(); // 通常
@@ -466,6 +474,49 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
   if (flip < 0) ctx.scale(-1, 1);
   (BODY[id] || BODY.hero)(ctx, { motion, hitFlash, nowS });
   ctx.restore();
+
+  // 状態異常オーバーレイ（全キャラ共通・本体ローカル空間）
+  if (motion.shock) {
+    // 体を取り巻く電撃アーク＋強発光時の白フラッシュ
+    ctx.save();
+    ctx.strokeStyle = 'rgba(190,235,255,' + (0.7 + 0.3 * Math.abs(motion.zap)) + ')';
+    ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+    for (let k = 0; k < 4; k++) {
+      const base = motion.zap * 0.5 + k * 1.57;
+      const ca = Math.cos(base), sa = Math.sin(base);
+      ctx.beginPath(); ctx.moveTo(ca * 6, sa * 6 - 6);
+      for (let s = 1; s <= 3; s++) { const rr = 8 + s * 6, off = (s % 2) ? 4 : -4; ctx.lineTo(ca * rr - sa * off, sa * rr + ca * off - 6); }
+      ctx.stroke();
+    }
+    if (motion.zap > 0.7) { ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(0, -6, 22, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+  }
+  if (motion.poison) {
+    // 緑の乗算オーバーレイ＋上昇する毒の泡
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(150,220,120,0.5)';
+    ctx.beginPath(); ctx.ellipse(0, -4, 13, 18, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(150,220,120,0.7)';
+    const bt = nowS || 0;
+    for (let k = 0; k < 3; k++) {
+      const ph = (bt * 0.8 + k / 3) % 1;
+      ctx.beginPath(); ctx.arc((k - 1) * 6, -10 - ph * 16, 1.6 + (1 - ph) * 1.4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  if (motion.burn) {
+    // 立ち上る炎＋暖色グロー
+    const bt = nowS || 0;
+    ctx.fillStyle = 'rgba(255,210,110,0.4)';
+    ctx.beginPath(); ctx.ellipse(0, -4, 8, 12, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,150,50,0.7)';
+    for (let k = 0; k < 5; k++) {
+      const ph = (bt * 1.4 + k / 5) % 1;
+      const fx2 = Math.sin((k + bt) * 2) * 6;
+      ctx.beginPath(); ctx.ellipse(fx2, -4 - ph * 20, 2.4 * (1 - ph * 0.5), 4 * (1 - ph * 0.4), 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
 
   // 構え＋遠隔武器（照準方向・通常スケール＝攻撃判定と整合）
   ctx.save(); ctx.rotate(ang);

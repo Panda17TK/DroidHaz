@@ -138,6 +138,10 @@ export function updateCombat(state, dt, bus, input, audio) {
   if (p.iTime > 0) { p.iTime -= dt; if (p.iTime < 0) p.iTime = 0; }
   // 弱体化（被弾デバフ）の減衰。発火（HP減少検出）は本関数末尾で行う＝弱体化モーションのトリガ。
   if (p.weakT > 0) { p.weakT -= dt; if (p.weakT < 0) p.weakT = 0; }
+  // 状態異常：感電(スタン)・毒/炎上(継続ダメージ)。付与は敵弾側（projectiles）。
+  if (p.shockT > 0) { p.shockT -= dt; if (p.shockT < 0) p.shockT = 0; }
+  if (p.poisonT > 0) { p.poisonT -= dt; if (p.poisonT < 0) p.poisonT = 0; p.hp -= (CONFIG.player.poisonDps || 0) * dt; }
+  if (p.burnT > 0) { p.burnT -= dt; if (p.burnT < 0) p.burnT = 0; p.hp -= (CONFIG.player.burnDps || 0) * dt; }
   // マズル/反動の減衰（描画用）
   if (p.muzzleT > 0) { p.muzzleT -= dt; if (p.muzzleT < 0) p.muzzleT = 0; }
   if (p.meleeT > 0) { p.meleeT -= dt; if (p.meleeT < 0) p.meleeT = 0; }
@@ -162,6 +166,7 @@ export function updateCombat(state, dt, bus, input, audio) {
     const ay = (input.pressed('w') || input.pressed('arrowup') ? -1 : 0) + (input.pressed('s') || input.pressed('arrowdown') ? 1 : 0);
     if (ax || ay) { const l = Math.hypot(ax, ay) || 1; dirx = ax / l; diry = ay / l; speedScale = 1; }
   }
+  if (p.shockT > 0) { dirx = 0; diry = 0; speedScale = 0; } // 感電中は移動不能（スタン）
   const moving = speedScale > 0;
   const dash = input.pressed('shift') && moving && p.sta > 0;
   p.isDashing = dash;
@@ -205,14 +210,14 @@ export function updateCombat(state, dt, bus, input, audio) {
   const jNow = input.pressed('j');
   const jEdge = jNow && !p._meleePrevJ;
   p._meleePrevJ = jNow;
-  if (jEdge && p.meleeCD <= 0) doMelee(state, bus);
+  if (jEdge && p.meleeCD <= 0 && p.shockT <= 0) doMelee(state, bus); // 感電中は近接不能
 
   // 射撃（K）
   if (p.shootCD > 0) p.shootCD -= dt;
   let shotThisFrame = false;
 
   const curWeapon = p.weapons[p.curW];
-  const firing = input.pressed('k') || autoFiring;
+  const firing = (input.pressed('k') || autoFiring) && p.shockT <= 0; // 感電中は射撃不能
   if (firing && p.shootCD <= 0 && curWeapon) {
     // 攻撃ステータスは CONFIG.weapons から都度引く（dev-editor の編集をラン中に反映）。
     // mag/_autoRT 等のランタイム状態は runtime 側(curWeapon)に残す。

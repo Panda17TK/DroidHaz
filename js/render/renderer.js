@@ -256,12 +256,19 @@ export function renderFrame(ctx, canvas, state) {
   for (const b of state.ebullets) {
     const pulse = b.mine ? (0.5 + 0.5 * Math.sin(nowMs / 80)) : 1;
     const r = b.mine ? 6 : 4;
+    // 弾種で色分け：電撃=水色 / 毒=緑 / 通常=赤。
+    const glow = b.shock ? [[0, 'rgba(190,235,255,0.95)'], [1, 'rgba(120,200,255,0)']]
+      : b.poison ? [[0, 'rgba(170,235,130,0.95)'], [1, 'rgba(120,210,90,0)']]
+      : b.burn ? [[0, 'rgba(255,190,100,0.95)'], [1, 'rgba(255,120,40,0)']]
+      : [[0, 'rgba(255,170,170,0.9)'], [1, 'rgba(255,80,80,0)']];
+    const glowKey = b.shock ? 'ebGlowShock' : b.poison ? 'ebGlowPoison' : b.burn ? 'ebGlowBurn' : 'ebGlow';
+    const core = b.shock ? '#eaffff' : b.poison ? '#d6ffba' : b.burn ? '#ffd6a0' : (b.mine ? '#ff6b6b' : '#ffd0d0');
     ctx.save(); ctx.translate(b.x, b.y);
-    const grd = radialQuant(ctx, r + 2, [[0, 'rgba(255,170,170,0.9)'], [1, 'rgba(255,80,80,0)']], 'ebGlow');
+    const grd = radialQuant(ctx, r + 2, glow, glowKey);
     ctx.globalAlpha = pulse;
     ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0, 0, r + 2, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
-    ctx.fillStyle = b.mine ? '#ff6b6b' : '#ffd0d0';
+    ctx.fillStyle = core;
     ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }

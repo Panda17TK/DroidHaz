@@ -9,9 +9,9 @@ export const STAGE_WAVES = 5; // 1 ステージあたりのウェーブ数（暫
 // 各ステージのメタ。mapId(専用マップ)・enemyPool(出現する通常敵)・gimmicks。
 export const STAGES = [
   { id: 1, name: '崩落区画',   mapId: 'stage1', enemyPool: ['zombie'] },
-  { id: 2, name: '廃液プラント', mapId: 'stage2', enemyPool: ['zombie', 'spitter'] },
-  { id: 3, name: '封鎖回廊',   mapId: 'stage3', enemyPool: ['zombie', 'spitter', 'stalker'] },
-  { id: 4, name: '中枢コア',   mapId: 'stage4', enemyPool: ['spitter', 'stalker'] },
+  { id: 2, name: '廃液プラント', mapId: 'stage2', enemyPool: ['zombie', 'spitter', 'tesla'] },
+  { id: 3, name: '封鎖回廊',   mapId: 'stage3', enemyPool: ['zombie', 'spitter', 'stalker', 'spore'] },
+  { id: 4, name: '中枢コア',   mapId: 'stage4', enemyPool: ['spitter', 'stalker', 'tesla', 'spore', 'pyro'] },
 ];
 
 export const STAGE_MAX = STAGES.length;
