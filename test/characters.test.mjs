@@ -6,6 +6,9 @@ import {
   applyCharacter, unlockableFor, findRangedDef,
 } from '../js/state/characters.js';
 import { computePlayerMotion, MOTION } from '../js/render/character-motion.js';
+import { updateItems } from '../js/systems/items.js';
+
+const noBus = { emit() {} };
 
 function mkState(charId) {
   return {
@@ -127,4 +130,33 @@ test('ゲームオーバーは dead かつ dying ポーズ', () => {
   const m = computePlayerMotion(s, 0);
   assert.equal(m.dead, true);
   assert.equal(m.primary, MOTION.DYING);
+});
+
+// ===== 武器解放ドロップの取得（updateItems → applyWeaponUnlock）=====
+function pickupState(item) {
+  return {
+    player: { x: 0, y: 0, w: 22, h: 22, weapons: [{ id: 'mbolt' }], meleeWeapons: ['staff'], curW: 0, curMelee: 0, hp: 100, hpMax: 100, inv: {} },
+    items: [Object.assign({ x: 0, y: 0 }, item)],
+  };
+}
+
+test('遠隔武器の解放ドロップを拾うと weapons に追加され即装備', () => {
+  const s = pickupState({ type: 'weapon', kind: 'weaponUnlock', slot: 'ranged', def: { id: 'fireball', name: '火球' } });
+  updateItems(s, 0.016, noBus);
+  assert.ok(s.player.weapons.find((w) => w.id === 'fireball'), 'fireball 追加');
+  assert.equal(s.player.weapons[s.player.curW].id, 'fireball', '即装備');
+  assert.equal(s.items.length, 0, 'アイテムは消費される');
+});
+
+test('近接武器の解放ドロップを拾うと meleeWeapons に追加され即装備', () => {
+  const s = pickupState({ type: 'weapon', kind: 'weaponUnlock', slot: 'melee', unlockId: 'shinai', name: '竹刀' });
+  updateItems(s, 0.016, noBus);
+  assert.ok(s.player.meleeWeapons.includes('shinai'));
+  assert.equal(s.player.meleeWeapons[s.player.curMelee], 'shinai');
+});
+
+test('同じ武器の二重解放はしない（重複追加なし）', () => {
+  const s = pickupState({ type: 'weapon', kind: 'weaponUnlock', slot: 'ranged', def: { id: 'mbolt', name: '魔法弾' } });
+  updateItems(s, 0.016, noBus);
+  assert.equal(s.player.weapons.filter((w) => w.id === 'mbolt').length, 1);
 });

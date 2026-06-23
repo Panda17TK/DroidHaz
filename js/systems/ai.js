@@ -5,6 +5,7 @@ import { buildMobGrid, forNearby } from './spatial.js';
 import { addShake, spawnDeathFX, addSlowmo, spawnBleedFX } from './fx.js';
 import { runAttacks, updateMobActions } from './attacks.js';
 import { tickStatus } from './status.js';
+import { unlockableFor } from '../state/characters.js';
 // mob 生成はデータ駆動の enemies.js に一本化。後方互換のため re-export。
 import { makeMobFromKey, makeZombie, makeSpitter } from './enemies.js';
 export { makeMobFromKey, makeZombie, makeSpitter };
@@ -23,10 +24,16 @@ function dropLoot(state, x, y, isElite) {
   if (Math.random() < d.buffSpeedChance) items.push({ type: 'buffSpeed', x, y });
   if (Math.random() < d.buffMeleeChance) items.push({ type: 'buffMelee', x, y });
   if (Math.random() < d.crateChance) items.push({ type: 'crate', x, y });
-  // 刀の解放ドロップ（まれ）。未所持のときだけ抽選する。
-  const mw = state.player && state.player.meleeWeapons;
-  if (mw && mw.indexOf('katana') === -1 && Math.random() < (d.katanaChance || 0)) {
-    items.push({ type: 'katana', x: x + 2, y: y - 2 });
+  // 武器解放ドロップ（まれ）。選択中キャラの dropPool から未所持の遠隔/近接を1つ抽選。
+  // （hero は近接=刀のみ＝従来挙動。他キャラはそれぞれのテーマ武器が落ちる。）
+  if (Math.random() < (d.katanaChance || 0)) {
+    const u = unlockableFor(state);
+    const pool = u.ranged.map((rd) => ({ slot: 'ranged', def: rd, name: rd.name, glyph: 'box', color: '#cfe0ff' }))
+      .concat(u.melee.map((mid) => ({ slot: 'melee', unlockId: mid, name: ((CONFIG.melee.weapons[mid] || {}).name) || mid, glyph: 'sword', color: '#dfe8f2' })));
+    if (pool.length) {
+      const pick = pool[(Math.random() * pool.length) | 0];
+      items.push(Object.assign({ type: 'weapon', kind: 'weaponUnlock', x: x + 2, y: y - 2 }, pick));
+    }
   }
   // 中ボス/ボスは確定で補給クレートを複数ドロップ
   if (isElite) { const n = d.bossCrateBonus || 3; for (let i = 0; i < n; i++) items.push({ type: 'crate', x: x + (Math.random() * 20 - 10), y: y + (Math.random() * 20 - 10) }); }

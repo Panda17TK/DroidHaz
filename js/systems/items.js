@@ -11,8 +11,27 @@ const BUFF_KEYS = {
   speed: { val: 'speed', timer: 'tSpeed' },
 };
 
+// キャラ別武器解放ドロップ（dropLoot が生成）の取得：遠隔は weapons へ、近接は meleeWeapons へ追加し即装備。
+function applyWeaponUnlock(state, bus, it) {
+  const p = state.player;
+  if (it.slot === 'melee') {
+    if (!p.meleeWeapons) p.meleeWeapons = ['fists'];
+    if (it.unlockId && p.meleeWeapons.indexOf(it.unlockId) === -1) {
+      p.meleeWeapons.push(it.unlockId); p.curMelee = p.meleeWeapons.length - 1;
+    }
+    bus.emit('ui:toast', '近接武器を解放: ' + (it.name || it.unlockId));
+  } else {
+    if (!p.weapons) p.weapons = [];
+    if (it.def && !p.weapons.find((w) => w.id === it.def.id)) {
+      p.weapons.push(Object.assign({}, it.def)); p.curW = p.weapons.length - 1;
+    }
+    bus.emit('ui:toast', '武器を入手: ' + (it.name || (it.def && it.def.id) || ''));
+  }
+}
+
 function applyPickup(state, bus, it) {
   const p = state.player;
+  if (it.kind === 'weaponUnlock') { applyWeaponUnlock(state, bus, it); bus.emit('sfx', 'pickup'); return; }
   const def = CONFIG.items[it.type];
   if (!def) return;
   switch (def.kind) {

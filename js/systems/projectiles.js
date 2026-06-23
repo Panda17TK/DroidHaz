@@ -15,14 +15,27 @@ function isSolidTile(state, x, y) {
   return state.map[ty] && (state.map[ty][tx] === '#' || state.map[ty][tx] === 'D' || state.map[ty][tx] === 'O');
 }
 
-// プレイヤー弾
+// プレイヤー弾。projType 演出と効果フラグ（aoe/bleed/slow/homing/pierce）を解釈する。
 export function updateBullets(state, dt) {
+  const bleedDur = (CONFIG.melee && CONFIG.melee.status && CONFIG.melee.status.bleedDur) || 10;
   for (let i = state.bullets.length - 1; i >= 0; i--) {
     const b = state.bullets[i];
+    // 追尾（ミサイル等）：最寄り mob へ旋回（敵弾と同じロジック）。
+    if (b.homing && state.mobGrid) {
+      const tgt = findNearby(state.mobGrid, b.x, b.y, 260, (mm) => mm.hp > 0);
+      if (tgt) {
+        const want = Math.atan2(tgt.y - b.y, tgt.x - b.x);
+        const cur = Math.atan2(b.vy, b.vx);
+        const diff = ((want - cur + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        const turn = Math.max(-b.homing * dt, Math.min(b.homing * dt, diff));
+        const sp = Math.hypot(b.vx, b.vy) || 1;
+        const na = cur + turn; b.vx = Math.cos(na) * sp; b.vy = Math.sin(na) * sp;
+      }
+    }
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     const tx = Math.floor(b.x / TILE), ty = Math.floor(b.y / TILE);
     if (state.map[ty] && (state.map[ty][tx] === '#' || state.map[ty][tx] === 'D' || state.map[ty][tx] === 'O')) {
-      damageTile(state, tx, ty, b.dmg);
+      if (b.aoe) explode(state, b.x, b.y); else damageTile(state, tx, ty, b.dmg);
       state.bullets.splice(i, 1);
       continue;
     }
@@ -33,10 +46,14 @@ export function updateBullets(state, dt) {
       if (m) {
         const n = norm(m.x - b.x, m.y - b.y);
         hurtMob(state, m, b.dmg, n.x, n.y, 160, { number: true });
+        if (b.bleed || b.slow) m.bleedT = bleedDur; // 出血/鈍足は既存 bleed 機構を再利用
+        if (b.aoe) explode(state, b.x, b.y);
         hit = true;
       }
     }
-    if (hit || b.life <= 0) state.bullets.splice(i, 1);
+    // 寿命切れの aoe（ミサイル/花火等）も着弾炸裂させる。
+    if (b.aoe && b.life <= 0) explode(state, b.x, b.y);
+    if ((hit && !b.pierce) || b.life <= 0) state.bullets.splice(i, 1);
   }
 }
 

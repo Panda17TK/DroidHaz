@@ -19,6 +19,13 @@ const GLYPH_DRAW = {
   crate: (ctx) => crateGlyph(ctx),
 };
 
+// 弾の色（projType 別）。未指定はデフォルトの水色。
+const BULLET_COLOR = {
+  arcane: '#9b7bff', fire: '#ff8a3c', ice: '#8fd8ff', curse: '#c07bff',
+  book: '#d8c08a', water: '#6fd0ff', firework: '#ff7da6', bone: '#e8e6df',
+  skull: '#cfd8c0', metal: '#cdd6e0', plasma: '#7affd0', missile: '#ffd07a',
+};
+
 // #rrggbb / #rgb → rgba(r,g,b,alpha)
 function hexToRgba(hex, alpha) {
   let c = String(hex).replace('#', '');
@@ -211,8 +218,8 @@ export function renderFrame(ctx, canvas, state) {
   // ===== アイテム（CONFIG.items から色/グリフを引く）=====
   const tItem = nowS;
   for (const it of state.items) {
-    const def = CONFIG.items[it.type];
-    if (!def) continue;
+    const def = CONFIG.items[it.type] || it; // 武器解放など CONFIG 外アイテムは自前の glyph/color を使う
+    if (!def || !GLYPH_DRAW[def.glyph]) continue;
     const phase = (it.x + it.y) * 0.05;
     const bobY = Math.sin(tItem * 2.5 + phase) * 2;            // ふわふわ上下
     const pulse = 0.5 + 0.5 * Math.sin(tItem * 3 + phase);
@@ -238,9 +245,11 @@ export function renderFrame(ctx, canvas, state) {
   for (const b of state.bullets) {
     const sp = Math.hypot(b.vx, b.vy) || 1;
     const tx = (b.vx / sp) * 8, ty = (b.vy / sp) * 8;
-    ctx.strokeStyle = 'rgba(160,210,255,0.5)'; ctx.lineWidth = 3;
+    const col = BULLET_COLOR[b.projType] || '#a0d2ff';
+    ctx.strokeStyle = hexToRgba(col, 0.5); ctx.lineWidth = b.aoe ? 4 : 3;
     ctx.beginPath(); ctx.moveTo(b.x - tx, b.y - ty); ctx.lineTo(b.x, b.y); ctx.stroke();
-    ctx.fillStyle = '#eaf4ff'; ctx.beginPath(); ctx.arc(b.x, b.y, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(b.x, b.y, b.aoe ? 3 : 2, 0, Math.PI * 2); ctx.fill();
+    if (b.projType) { ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(b.x, b.y, 1, 0, Math.PI * 2); ctx.fill(); }
   }
   // 敵弾：脈動する赤いグロー（mine は点滅）。グラデは原点中心でキャッシュ、明滅は globalAlpha。
   // nowMs は renderFrame 冒頭で取得済み

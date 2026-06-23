@@ -215,8 +215,9 @@ export function updateCombat(state, dt, bus, input, audio) {
     // mag/_autoRT 等のランタイム状態は runtime 側(curWeapon)に残す。
     const w = liveWeapon(curWeapon);
 
-    if (w.id === 'beam') {
-      // ビームは ammoBeam セルを1発ずつ消費
+    if (w.magSize == null) {
+      // ビーム系（弾倉なし=ammoBeam を直接消費。hero beam / 魔法使い 雷 / ロボ レーザー）
+      // ※ 貫通ヒットスキャン。色は弾種を問わず共通（演出の簡素化）。
       if ((p.inv.ammoBeam || 0) <= 0) {
         bus.emit('ui:toast', 'Beam セル切れ');
       } else {
@@ -275,7 +276,13 @@ export function updateCombat(state, dt, bus, input, audio) {
         for (let i = 0; i < shots; i++) {
           const ang = aimAng + (Math.random() - 0.5) * (w.spread || 0) * 2;
           const vx = Math.cos(ang) * baseSpd, vy = Math.sin(ang) * baseSpd;
-          state.bullets.push({ x: p.x + Math.cos(ang) * 14, y: p.y + Math.sin(ang) * 14, vx, vy, life: 0.9, dmg: bulletDmg });
+          // projType（描画）と効果フラグ（aoe=着弾炸裂 / bleed/slow=状態異常 / homing=旋回追尾）を弾に付与。
+          // 挙動は projectiles.js が解釈し、既存の explode/bleed 機構を再利用する。
+          state.bullets.push({
+            x: p.x + Math.cos(ang) * 14, y: p.y + Math.sin(ang) * 14, vx, vy, life: 0.9, dmg: bulletDmg,
+            projType: w.projType || null,
+            aoe: !!w.aoe, bleed: !!w.bleed, slow: !!w.slow, homing: w.homing ? 3.2 : 0,
+          });
         }
         // マズルフラッシュ＋反動（描画用）。銃口位置は向きの先。
         spawnMuzzleFX(state, p.x + dir.x * 16, p.y + dir.y * 16, aimAng, w.id === 'shotgun' ? '#ffd08a' : '#fff1c0');
