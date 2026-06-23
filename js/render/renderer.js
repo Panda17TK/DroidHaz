@@ -35,20 +35,28 @@ function hexToRgba(hex, alpha) {
 }
 
 // プレイヤー頭上の吹き出し（ダメージ/息切れボイス）。screen 空間で描く（フォント可読性のため）。
+// 白地の吹き出し。y は「しっぽの先端」位置（下向きのしっぽがキャラを指す）。箱はその上に出る。
 function drawSpeechBubble(ctx, x, y, text, alpha, kind) {
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
   ctx.font = 'bold 13px ui-sans-serif, system-ui, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const w = Math.max(30, ctx.measureText(text).width + 16), h = 22;
-  const by = y - h;
-  const accent = kind === 'shock' ? '#bfe9ff' : kind === 'poison' ? '#9be86a'
-    : kind === 'burn' ? '#ff9a5a' : kind === 'breath' ? '#cdd8ea' : '#ffb0b0';
-  ctx.fillStyle = 'rgba(14,20,28,0.92)'; ctx.strokeStyle = accent; ctx.lineWidth = 1.5;
-  roundedRect(ctx, x - w / 2, by, w, h, 6); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = 'rgba(14,20,28,0.92)';
-  ctx.beginPath(); ctx.moveTo(x - 5, by + h - 0.5); ctx.lineTo(x, by + h + 6); ctx.lineTo(x + 5, by + h - 0.5); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#eef3fb'; ctx.fillText(text, x, by + h / 2);
+  const w = Math.max(30, ctx.measureText(text).width + 16), h = 22, tail = 6;
+  const by = y - tail - h;            // 箱の上端（しっぽ分だけ上に）
+  const accent = kind === 'shock' ? '#3aa0d8' : kind === 'poison' ? '#5aa83a'
+    : kind === 'burn' ? '#e07a2a' : kind === 'breath' ? '#9aa6b8' : '#e06a78';
+  // 1) 白い箱
+  ctx.fillStyle = 'rgba(255,255,255,0.97)';
+  roundedRect(ctx, x - w / 2, by, w, h, 7); ctx.fill();
+  // 2) 箱の縁取り
+  ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+  roundedRect(ctx, x - w / 2, by, w, h, 7); ctx.stroke();
+  // 3) しっぽ（白で塗って箱の下辺の縁を隠す → 縁の2辺だけ描く）
+  ctx.fillStyle = 'rgba(255,255,255,0.97)';
+  ctx.beginPath(); ctx.moveTo(x - 6, by + h - 1); ctx.lineTo(x, by + h + tail); ctx.lineTo(x + 6, by + h - 1); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = accent; ctx.beginPath(); ctx.moveTo(x - 6, by + h - 1); ctx.lineTo(x, by + h + tail); ctx.lineTo(x + 6, by + h - 1); ctx.stroke();
+  // 4) 文字（濃色）
+  ctx.fillStyle = '#1b2230'; ctx.fillText(text, x, by + h / 2);
   ctx.restore();
 }
 
@@ -439,14 +447,20 @@ export function renderFrame(ctx, canvas, state) {
     ctx.restore();
   }
 
-  // プレイヤー頭上の吹き出し（ダメージ/息切れボイス）
+  // プレイヤー頭上の吹き出し（ダメージ/息切れボイス）。キャラの絵の外側（頭上）に出す。
+  // フェードイン→表示→フェードアウト（合計≈1秒）。
   if (state.playerVoice) {
     const v = state.playerVoice;
-    const va = 1 - v.t / v.life;
+    const fin = 0.15, fout = 0.3;
+    let va = 1;
+    if (v.t < fin) va = v.t / fin;
+    else if (v.t > v.life - fout) va = (v.life - v.t) / fout;
+    va = Math.max(0, Math.min(1, va));
     if (va > 0) {
       const psx = (rx(state.player, A) - camX) * zoom;
-      const psy = (ry(state.player, A) - camY) * zoom - 26 - (1 - va) * 10;
-      drawSpeechBubble(ctx, psx, psy, v.text, va, v.kind);
+      // しっぽ先端をキャラ頭上（スプライト外）に置く。46 はワールド単位で本体の高さ分の余裕。
+      const tipY = (ry(state.player, A) - camY) * zoom - 46 * zoom;
+      drawSpeechBubble(ctx, psx, tipY, v.text, va, v.kind);
     }
   }
 

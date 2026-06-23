@@ -38,14 +38,14 @@ function setVoice(state, text, kind, life) {
 
 export function triggerDamageVoice(state, kind) {
   if (!kind) return;
-  setVoice(state, pickLine(kind), kind, 1.3);
+  setVoice(state, pickLine(kind), kind, 1.1); // 約1秒（フェードイン/表示/フェードアウト込み）
 }
 
 // 息切れボイス：スタミナ低下中に一定間隔で出す（CD は内部管理）。
 export function triggerBreathVoice(state, dt) {
   state._breathVoiceCD = (state._breathVoiceCD == null ? 0 : state._breathVoiceCD) - dt;
   if (state._breathVoiceCD <= 0) {
-    setVoice(state, pickLine('breath'), 'breath', 1.4);
+    setVoice(state, pickLine('breath'), 'breath', 1.2);
     state._breathVoiceCD = 3.5 + Math.random() * 2;
   }
 }
