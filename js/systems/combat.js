@@ -136,6 +136,8 @@ export function updateCombat(state, dt, bus, input, audio) {
 
   // 無敵時間の減衰（赤いままになるバグ防止）
   if (p.iTime > 0) { p.iTime -= dt; if (p.iTime < 0) p.iTime = 0; }
+  // 弱体化（被弾デバフ）の減衰。発火（HP減少検出）は本関数末尾で行う＝弱体化モーションのトリガ。
+  if (p.weakT > 0) { p.weakT -= dt; if (p.weakT < 0) p.weakT = 0; }
   // マズル/反動の減衰（描画用）
   if (p.muzzleT > 0) { p.muzzleT -= dt; if (p.muzzleT < 0) p.muzzleT = 0; }
   if (p.meleeT > 0) { p.meleeT -= dt; if (p.meleeT < 0) p.meleeT = 0; }
@@ -170,7 +172,8 @@ export function updateCombat(state, dt, bus, input, audio) {
   }
   p._dashPrev = dash;
 
-  const spd = p.baseSpeed * CONFIG.player.speedMul * p.buffs.speed * mods.moveMul * (dash ? CONFIG.player.dashMul : 1);
+  const weakMul = (p.weakT > 0) ? (CONFIG.player.weakSlowMul || 0.82) : 1; // 弱体化中は鈍足
+  const spd = p.baseSpeed * CONFIG.player.speedMul * p.buffs.speed * mods.moveMul * weakMul * (dash ? CONFIG.player.dashMul : 1);
   let vx = dirx * spd * speedScale * dt, vy = diry * spd * speedScale * dt;
   if (moving) { p.facing.x = dirx; p.facing.y = diry; }
 
@@ -326,4 +329,8 @@ export function updateCombat(state, dt, bus, input, audio) {
   // 開発者モードのゴッドモード：HPを満タンに固定
   if (state.devGod) p.hp = p.hpMax || 100;
   p.hp = clamp(p.hp, 0, p.hpMax || 100);
+  // 弱体化トリガ：このフレームで HP が減った（被弾）なら weakT をセット（弱体化モーション）。
+  if (p._hpPrev == null) p._hpPrev = p.hp;
+  if (p.hp < p._hpPrev - 0.001 && !state.gameOver) p.weakT = CONFIG.player.weakDur || 1.2;
+  p._hpPrev = p.hp;
 }
