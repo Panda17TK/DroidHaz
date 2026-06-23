@@ -6,6 +6,7 @@ import { drawEnemyBody } from './enemy-sprites.js';
 import { FX_DRAW } from './fx-draw.js';
 import { verticalLinear, radialQuant, radialAtOrigin } from './grad-cache.js';
 import { computeView, clampCamera } from './view.js';
+import { drawCharacter, drawWeaponSilhouette, drawMeleeIcon } from './character-sprites.js';
 
 // グリフ名 → 描画関数（CONFIG.items.glyph から引く）
 const GLYPH_DRAW = {
@@ -60,55 +61,17 @@ function drawParallax(ctx, W, H, camX, camY) {
   }
 }
 
-// 銃のシルエットを原点から +x 方向へ描く（プレイヤーの構え／HUDアイコン共用）。
-function drawHeldGun(ctx, id, recoil) {
-  const r = recoil || 0;
-  if (id === 'shotgun') {
-    ctx.fillStyle = '#3a2a1c'; ctx.fillRect(5 - r, -2, 14, 4);      // 木ストック
-    ctx.fillStyle = '#6b727b'; ctx.fillRect(13 - r, -1.4, 11, 2.8); // 金属バレル
-    ctx.fillStyle = '#222a32'; ctx.fillRect(10 - r, 2, 5, 2);       // ポンプ
-  } else if (id === 'mg') {
-    ctx.fillStyle = '#2b323c'; ctx.fillRect(5 - r, -2.4, 19, 4.6);
-    ctx.fillStyle = '#6b737d'; ctx.fillRect(16 - r, -1.2, 9, 2.4);
-    ctx.fillStyle = '#161d27'; ctx.fillRect(8 - r, 2, 4, 5);        // マガジン
-  } else if (id === 'beam') {
-    ctx.fillStyle = '#26384a'; ctx.fillRect(5 - r, -2.6, 14, 5.2);
-    ctx.fillStyle = '#7fe0ff'; ctx.fillRect(17 - r, -1.4, 7, 2.8);  // エミッタ
-    ctx.fillStyle = '#bff2ff'; ctx.fillRect(22 - r, -0.8, 2, 1.6);
-  } else if (id === 'grenade') {
-    ctx.fillStyle = '#33402c'; ctx.fillRect(5 - r, -2.6, 12, 5.2);
-    ctx.fillStyle = '#1c2417'; ctx.fillRect(14 - r, -3, 6, 6);      // 太い銃口
-  } else { // pistol
-    ctx.fillStyle = '#2b3340'; ctx.fillRect(5 - r, -2, 11, 4);
-    ctx.fillStyle = '#161d27'; ctx.fillRect(14 - r, -1.4, 3, 2.8);
-    ctx.fillStyle = '#384353'; ctx.fillRect(5 - r, 1, 3, 4);        // グリップ
-  }
-}
-
-// 近接アイコン（拳/刀）を原点中心に描く（HUD用）。
-function drawMeleeIcon(ctx, id) {
-  if (id === 'katana' || id === 'blade') {
-    ctx.save(); ctx.rotate(-0.5);
-    ctx.fillStyle = '#cfd8e3'; ctx.fillRect(-1.5, -12, 3, 18);  // 刃
-    ctx.fillStyle = '#eef3f8'; ctx.fillRect(-1.5, -12, 1, 18);  // 峰の光
-    ctx.fillStyle = '#caa45a'; ctx.fillRect(-3, 5, 6, 2);       // 鍔
-    ctx.fillStyle = '#7a5a32'; ctx.fillRect(-1.5, 6, 3, 5);     // 柄
-    ctx.restore();
-  } else { // 徒手空拳＝拳
-    ctx.fillStyle = '#e7b48a'; roundedRect(ctx, -7, -5, 14, 11, 3); ctx.fill();
-    ctx.fillStyle = '#c98f63'; ctx.fillRect(-7, 2, 14, 2);
-    ctx.fillStyle = '#a9744b'; for (let i = 0; i < 3; i++) ctx.fillRect(-5 + i * 4, -4, 1, 4);
-  }
-}
-
 // 右上の武器スロット（近接＋現在の銃）。スクリーン空間で描く。
+// アイコンは character-sprites.js の drawWeaponSilhouette/drawMeleeIcon を共有（全キャラ対応）。
 function drawWeaponHud(ctx, W, H, state) {
   const p = state.player;
   if (!p || !p.weapons) return;
   const bw = 48, bh = 30, gap = 6, pad = 8;
+  const meleeId = (p.meleeWeapons && p.meleeWeapons[p.curMelee || 0]) || 'fists';
+  const meleeKind = ((CONFIG.melee && CONFIG.melee.weapons[meleeId]) || {}).kind || 'fist';
   const slots = [
-    { kind: 'melee', id: (p.meleeWeapons && p.meleeWeapons[p.curMelee || 0]) || 'fists' },
-    { kind: 'gun', id: (p.weapons[p.curW] || {}).id || 'pistol', active: true },
+    { kind: 'melee', meleeKind },
+    { kind: 'gun', def: (p.weapons[p.curW] || {}), active: true },
   ];
   let x = W - pad - (bw * slots.length + gap * (slots.length - 1));
   const y = pad;
@@ -120,8 +83,8 @@ function drawWeaponHud(ctx, W, H, state) {
     roundedRect(ctx, x, y, bw, bh, 5); ctx.stroke();
     ctx.save();
     ctx.translate(x + bw / 2, y + bh / 2);
-    if (s.kind === 'melee') drawMeleeIcon(ctx, s.id);
-    else { ctx.translate(-13, 0); drawHeldGun(ctx, s.id, 0); }
+    if (s.kind === 'melee') drawMeleeIcon(ctx, s.meleeKind);
+    else { ctx.translate(-13, 0); drawWeaponSilhouette(ctx, s.def, 0); }
     ctx.restore();
     x += bw + gap;
   }
@@ -360,122 +323,8 @@ export function renderFrame(ctx, canvas, state) {
     ctx.restore();
   }
 
-  // ===== プレイヤー =====
-  {
-    const pl = state.player;
-    const ang = Math.atan2(pl.facing.y, pl.facing.x);
-    const recoil = pl.recoil || 0;
-    // 補間位置＋反動で本体を後方へわずかにずらす
-    const ix = rx(pl, A), iy = ry(pl, A);
-    const px = ix - Math.cos(ang) * recoil, py = iy - Math.sin(ang) * recoil;
-
-    // 接地影
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(ix, iy + pl.h / 2 - 1, pl.w * 0.46, pl.h * 0.18, 0, 0, Math.PI * 2); ctx.fill();
-
-    // ダッシュ中の残像
-    if (pl.isDashing) {
-      ctx.globalAlpha = 0.22; ctx.fillStyle = '#e7c23c';
-      roundedRect(ctx, px - pl.facing.x * 8 - pl.w / 2, py - pl.facing.y * 8 - pl.h / 2, pl.w, pl.h, 5); ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    ctx.save(); ctx.translate(px, py);
-
-    const flip = pl.facing.x < 0 ? -1 : 1;
-    const hitFlash = pl.iTime > 0 && (Math.floor(pl.iTime * 20) % 2 === 0);
-    const SKIN = '#e7b48a', SKIN_SH = '#c98f63';
-    const SHIRT = hitFlash ? '#ff9aa2' : '#e7c23c';
-    const SHIRT_SH = hitFlash ? '#d8707a' : '#b9991f';
-    const PANTS = '#33589e', HAIR = '#2a231f';
-
-    // --- 本体（正面向きのドット絵人物。左向き時は左右反転）---
-    ctx.save();
-    if (flip < 0) ctx.scale(-1, 1);
-    // 脚（青ズボン）＋靴
-    ctx.fillStyle = PANTS; ctx.fillRect(-5, 4, 4, 7); ctx.fillRect(1, 4, 4, 7);
-    ctx.fillStyle = '#1c2c52'; ctx.fillRect(-5, 9, 4, 2); ctx.fillRect(1, 9, 4, 2);
-    // 腕（肌）
-    ctx.fillStyle = SKIN; ctx.fillRect(-8, -2, 3, 6); ctx.fillRect(5, -2, 3, 6);
-    // 胴（黄シャツ）
-    ctx.fillStyle = SHIRT; ctx.fillRect(-6, -3, 12, 8);
-    ctx.fillStyle = SHIRT_SH; ctx.fillRect(-6, 3, 12, 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.20)'; ctx.fillRect(-6, -3, 12, 2);
-    // 頭（肌）
-    ctx.fillStyle = SKIN; ctx.fillRect(-5, -11, 10, 9);
-    ctx.fillStyle = SKIN_SH; ctx.fillRect(-5, -3, 10, 1);
-    // 髪（黒・前髪＋もみあげ）
-    ctx.fillStyle = HAIR;
-    ctx.fillRect(-6, -12, 12, 5);
-    ctx.fillRect(-6, -12, 2, 6); ctx.fillRect(4, -12, 2, 6);
-    ctx.fillRect(-6, -8, 1, 3); ctx.fillRect(5, -8, 1, 3);
-    // 目
-    ctx.fillStyle = '#26303c';
-    ctx.fillRect(-3, -7, 2, 2); ctx.fillRect(1, -7, 2, 2);
-    ctx.restore();
-
-    // --- 武器の構え（照準方向へ前腕＋銃。発射時マズルフラッシュ）---
-    ctx.save(); ctx.rotate(ang);
-    ctx.fillStyle = SKIN; ctx.fillRect(3, -1.6, 6 - recoil * 0.4, 3.2); // 前腕
-    drawHeldGun(ctx, (pl.weapons[pl.curW] || {}).id || 'pistol', recoil);
-    if (pl.muzzleT > 0) {
-      ctx.fillStyle = '#fff1c0';
-      ctx.beginPath();
-      ctx.moveTo(26 - recoil, 0); ctx.lineTo(19 - recoil, 3.5); ctx.lineTo(21 - recoil, 0); ctx.lineTo(19 - recoil, -3.5);
-      ctx.closePath(); ctx.fill();
-    }
-    ctx.restore();
-
-    // 近接スイング中：装備中の近接武器に応じて刀／拳／蹴りを描く（FXと同期）。
-    if (pl.meleeT > 0) {
-      const sp = 1 - pl.meleeT / MELEE_SWING;     // 0→1 スイング進行
-      const dir = pl.meleeDir || 1;               // 振り方向（コンボで左右交互）
-      if (pl.meleeKind === 'blade') {
-        // 上段からの振り下ろし（前方へ踏み込みながらの袈裟斬り）
-        const chop = (-1.5 + 2.2 * sp) * dir;        // 上→下
-        const adv = Math.sin(sp * Math.PI) * 5;      // 前方への踏み込み
-        const len = 34, bw = 5;
-        ctx.save();
-        ctx.rotate(ang + chop);
-        ctx.translate(adv, 0);
-        ctx.fillStyle = '#8a6a36'; ctx.fillRect(7, -4, 3, 8);   // 鍔
-        ctx.fillStyle = '#d3deec';                              // 刃（テーパ）
-        ctx.beginPath();
-        ctx.moveTo(10, -bw / 2);
-        ctx.lineTo(10 + len, -1.3);
-        ctx.lineTo(10 + len + 6, 0);
-        ctx.lineTo(10 + len, 1.3);
-        ctx.lineTo(10, bw / 2);
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(11, -1.1); ctx.lineTo(10 + len, -0.6); ctx.stroke();
-        ctx.restore();
-      } else if (pl.meleeFinisher) {
-        // 蹴り：前方へ大きく突き出す脚＋足（踏み込みに同期）
-        const thrust = Math.sin(sp * Math.PI) * 16;
-        ctx.save();
-        ctx.rotate(ang);
-        ctx.strokeStyle = '#6f8db0'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(2, 4 * dir); ctx.lineTo(11 + thrust, 1 * dir); ctx.stroke();
-        ctx.fillStyle = '#8fb0d8';
-        ctx.beginPath(); ctx.arc(13 + thrust, 1 * dir, 3.4, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
-      } else {
-        // 殴り：腕を振り抜くフック（直突きでなく弧を描く）
-        const hook = (-0.9 + 1.8 * sp) * dir;
-        const ext = 6 + Math.sin(sp * Math.PI) * 7;
-        ctx.save();
-        ctx.rotate(ang + hook);
-        ctx.strokeStyle = '#7ab0ff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(2 + ext, 0); ctx.stroke();
-        ctx.fillStyle = '#cfe0ff';
-        ctx.beginPath(); ctx.arc(4 + ext, 0, 3, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
-      }
-    }
-    ctx.restore();
-  }
+  // ===== プレイヤー（character-sprites.js に委譲：5キャラ＋4モーション）=====
+  drawCharacter(ctx, state, rx(state.player, A), ry(state.player, A), A, nowS);
 
   // ===== FX（レジストリで type → 描画関数を引く）=====
   for (const f of state.fx) {
