@@ -313,9 +313,9 @@ export function updateCombat(state, dt, bus, input, audio) {
       if (shotThisFrame || input.pressed('k')) {
         w._autoRT = 0; // 射撃中はリセット
       } else {
-        // 射撃を止めて2秒経過したら、予備弾から自動リロード
+        // 射撃を止めて autoReloadDelay 秒経過したら、予備弾から自動リロード（銃種で秒数が異なる）
         w._autoRT = (w._autoRT || 0) + dt;
-        if (w._autoRT >= 2.0) {
+        if (w._autoRT >= (w.autoReloadDelay || 2.0)) {
           reload(state, bus);
           w._autoRT = 0;
         }

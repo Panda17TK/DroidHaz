@@ -110,12 +110,14 @@ export const DEFAULT_CONFIG = {
 
   // プレイヤー武器（データ駆動）。dev-editor から編集可能。
   // 並び順がホットキー 1..5 / curW のインデックスに対応する。
+  // autoReloadDelay: 射撃を止めてからオートリロードが走るまでの秒数（銃種で自然に変える）。
+  //   R キーは即時リロード。弾倉が大きい/重い銃ほど長め。beam は弾倉なしで対象外。
   weapons: [
-    { id: 'pistol',  name: 'Pistol',  dmg: 34, fireRate: 0.22, magSize: 12, mag: 12, spread: 0.05, pellets: 1, ammoType: 'ammo9'  },
-    { id: 'shotgun', name: 'Shotgun', dmg: 22, fireRate: 0.60, magSize: 6,  mag: 6,  spread: 0.25, pellets: 6, ammoType: 'ammo12' },
-    { id: 'mg',      name: 'MG',      dmg: 17, fireRate: 0.08, magSize: 40, mag: 40, spread: 0.12, pellets: 1, ammoType: 'ammo9'  },
+    { id: 'pistol',  name: 'Pistol',  dmg: 34, fireRate: 0.22, magSize: 12, mag: 12, spread: 0.05, pellets: 1, ammoType: 'ammo9',  autoReloadDelay: 1.2 },
+    { id: 'shotgun', name: 'Shotgun', dmg: 22, fireRate: 0.60, magSize: 6,  mag: 6,  spread: 0.25, pellets: 6, ammoType: 'ammo12', autoReloadDelay: 2.4 },
+    { id: 'mg',      name: 'MG',      dmg: 17, fireRate: 0.08, magSize: 40, mag: 40, spread: 0.12, pellets: 1, ammoType: 'ammo9',  autoReloadDelay: 3.2 },
     { id: 'beam',    name: 'Beam',    dmg: 110, fireRate: 0.60, magSize: null, mag: 0, spread: 0, pellets: 1, ammoType: 'ammoBeam' },
-    { id: 'grenade', name: 'Grenade', dmg: 0,  fireRate: 0.90, magSize: 1,  mag: 1,  spread: 0,    pellets: 1, ammoType: 'ammoNade' },
+    { id: 'grenade', name: 'Grenade', dmg: 0,  fireRate: 0.90, magSize: 1,  mag: 1,  spread: 0,    pellets: 1, ammoType: 'ammoNade', autoReloadDelay: 1.6 },
   ],
 
   waves: {
