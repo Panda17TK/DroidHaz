@@ -36,25 +36,27 @@ function hexToRgba(hex, alpha) {
 
 // プレイヤー頭上の吹き出し（ダメージ/息切れボイス）。screen 空間で描く（フォント可読性のため）。
 // 白地の吹き出し。y は「しっぽの先端」位置（下向きのしっぽがキャラを指す）。箱はその上に出る。
+// S=3：箱も文字も3倍サイズ。
 function drawSpeechBubble(ctx, x, y, text, alpha, kind) {
+  const S = 3;
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
-  ctx.font = 'bold 13px ui-sans-serif, system-ui, sans-serif';
+  ctx.font = 'bold ' + (13 * S) + 'px ui-sans-serif, system-ui, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const w = Math.max(30, ctx.measureText(text).width + 16), h = 22, tail = 6;
+  const w = Math.max(30 * S, ctx.measureText(text).width + 16 * S), h = 22 * S, tail = 6 * S, tw = 6 * S, rad = 7 * S;
   const by = y - tail - h;            // 箱の上端（しっぽ分だけ上に）
   const accent = kind === 'shock' ? '#3aa0d8' : kind === 'poison' ? '#5aa83a'
     : kind === 'burn' ? '#e07a2a' : kind === 'breath' ? '#9aa6b8' : '#e06a78';
   // 1) 白い箱
   ctx.fillStyle = 'rgba(255,255,255,0.97)';
-  roundedRect(ctx, x - w / 2, by, w, h, 7); ctx.fill();
+  roundedRect(ctx, x - w / 2, by, w, h, rad); ctx.fill();
   // 2) 箱の縁取り
-  ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.lineJoin = 'round';
-  roundedRect(ctx, x - w / 2, by, w, h, 7); ctx.stroke();
+  ctx.strokeStyle = accent; ctx.lineWidth = 2 * S; ctx.lineJoin = 'round';
+  roundedRect(ctx, x - w / 2, by, w, h, rad); ctx.stroke();
   // 3) しっぽ（白で塗って箱の下辺の縁を隠す → 縁の2辺だけ描く）
   ctx.fillStyle = 'rgba(255,255,255,0.97)';
-  ctx.beginPath(); ctx.moveTo(x - 6, by + h - 1); ctx.lineTo(x, by + h + tail); ctx.lineTo(x + 6, by + h - 1); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = accent; ctx.beginPath(); ctx.moveTo(x - 6, by + h - 1); ctx.lineTo(x, by + h + tail); ctx.lineTo(x + 6, by + h - 1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - tw, by + h - 2); ctx.lineTo(x, by + h + tail); ctx.lineTo(x + tw, by + h - 2); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = accent; ctx.lineWidth = 2 * S; ctx.beginPath(); ctx.moveTo(x - tw, by + h - 2); ctx.lineTo(x, by + h + tail); ctx.lineTo(x + tw, by + h - 2); ctx.stroke();
   // 4) 文字（濃色）
   ctx.fillStyle = '#1b2230'; ctx.fillText(text, x, by + h / 2);
   ctx.restore();
