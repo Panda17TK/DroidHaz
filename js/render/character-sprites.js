@@ -54,8 +54,10 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor, opts) {
   // 向き: 'front'(既定)/'frontDiag'/'side'。本体は常に右(+x)向きで描き、左右反転は drawCharacter が担う。
   //  顔パーツを facing 側(+x)へ shift し、奥目(画面左 -ex)を farK で横圧縮/省略、side は片目+鼻先。
   const orient = opts.orient || 'front';
-  const shift = orient === 'side' ? hw * 0.30 : orient === 'frontDiag' ? hw * 0.16 : 0;
-  const farK = orient === 'frontDiag' ? 0.55 : orient === 'side' ? 0 : 1; // 0=奥目省略
+  // 小さなチビ頭では目がほぼ顔幅いっぱい。寄せ過ぎると頭からはみ出すので shift は控えめにし、
+  // 「向いた感じ」は主に奥目(画面左 -ex)の横圧縮(farK)＋本体の傾き(sx)で表現する。
+  const shift = orient === 'side' ? hw * 0.05 : orient === 'frontDiag' ? hw * 0.03 : 0;
+  const farK = orient === 'frontDiag' ? 0.60 : orient === 'side' ? 0.32 : 1; // 横向きも奥目は消さず小さく残す（片目だと崩れて見える）
   const profile = orient === 'side';
   // 奥目(sgn=-1)を中心 -ex で横圧縮する transform を張る。near(sgn=+1)は等倍。
   const eyeXform = (sgn) => { if (sgn < 0 && farK < 1) { ctx.translate(-ex, 0); ctx.scale(farK, 1); ctx.translate(ex, 0); } };
@@ -178,15 +180,11 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor, opts) {
     }
   }
 
-  // 鼻先（横向きのみ・skull以外）：顔の手前端に小さな三角。
-  if (profile && style !== 'skull') {
-    ctx.fillStyle = (eyeColor && style !== 'robot') ? '#d8a87f' : '#d8a87f';
-    ctx.beginPath(); ctx.moveTo(ex + 2.2, ey + 1.2); ctx.lineTo(ex + 3.4, ey + 2.2); ctx.lineTo(ex + 2.2, ey + 2.6); ctx.closePath(); ctx.fill();
-  }
+  // （旧：横向きの鼻先三角は頭の外に飛び出して見えたため廃止）
 
-  // 口（横向きは手前へ寄せ・幅を狭める）
-  const mShift = profile ? hw * 0.12 : 0;
-  const mW = profile ? 0.7 : 1;
+  // 口（横向きはごく僅かに手前へ・少しだけ狭める）
+  const mShift = profile ? hw * 0.04 : 0;
+  const mW = profile ? 0.85 : 1;
   ctx.strokeStyle = (style === 'skull') ? '#0a0d12' : '#9a5b52';
   ctx.lineWidth = 1.2;
   if (m === MOTION.BREATH) {
@@ -233,7 +231,7 @@ function upperOffset(motion) {
 function dirInfo(a) {
   const dir = a.dir || (a.back ? 'back' : 'front');
   const back = (dir === 'back' || dir === 'backDiag');
-  const sx = dir === 'side' ? 2.2 : (dir === 'frontDiag' || dir === 'backDiag') ? 1.1 : 0;
+  const sx = dir === 'side' ? 1.4 : (dir === 'frontDiag' || dir === 'backDiag') ? 0.8 : 0;
   const orient = dir === 'side' ? 'side' : dir === 'frontDiag' ? 'frontDiag' : 'front';
   return { dir, back, sx, orient };
 }
