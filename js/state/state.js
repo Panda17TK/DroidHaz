@@ -38,6 +38,7 @@ export function createInitialState() {
 			x: 0, y: 0, w: 22, h: 22,
 			vx: 0, vy: 0,
 			hp: 100, hpMax: 100, iTime: 0, weakT: 0,
+			shockT: 0, poisonT: 0, burnT: 0,   // 状態異常タイマ（感電スタン／毒DoT／炎上DoT）
 			baseSpeed: 110,
 			facing: { x: 1, y: 0 },
 			staMax: 100, sta: 100,

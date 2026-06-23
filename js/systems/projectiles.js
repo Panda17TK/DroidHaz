@@ -8,7 +8,7 @@ import { norm } from './physics.js';
 import { forNearby, findNearby } from './spatial.js';
 import { damageTile } from './tiles.js';
 import { hurtMob, pointInFan } from './combat-core.js';
-import { spawnBlastFX, spawnSparksFX, addShake, addHitstop, recordPlayerHit } from './fx.js';
+import { spawnBlastFX, spawnSparksFX, addShake, addHitstop, recordPlayerHit, spawnShockFX, spawnPoisonFX } from './fx.js';
 
 function isSolidTile(state, x, y) {
   const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
@@ -103,6 +103,10 @@ export function updateEnemyBullets(state, dt) {
         p.vx += n.x * 180; p.vy += n.y * 180;
         addShake(state, 0.18, 6);
         recordPlayerHit(state, b.x, b.y);
+        // 状態異常付与（電撃=感電スタン / 毒=継続ダメージ）。ダッシュ回避中はこの分岐に来ない。
+        if (b.shock) { p.shockT = (CONFIG.player.shockDur || 0.45); spawnShockFX(state, p.x, p.y); }
+        if (b.poison) { p.poisonT = (CONFIG.player.poisonDur || 4); spawnPoisonFX(state, p.x, p.y); }
+        if (b.burn) { p.burnT = (CONFIG.player.burnDur || 3); spawnBlastFX(state, p.x, p.y, 14); }
       }
       state.ebullets.splice(i, 1);
     }

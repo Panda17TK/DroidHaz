@@ -61,6 +61,51 @@ const REGISTRY = {
     return true;
   },
 
+  // 電撃：速い電撃弾。被弾でプレイヤーを感電（短時間スタン）させる（付与は projectiles 側）。
+  shock(ctx) {
+    const { state, m, a, dx, dy, see, bus } = ctx;
+    if (!see) return false;
+    const ang = Math.atan2(dy, dx);
+    state.ebullets.push({
+      x: m.x, y: m.y, vx: Math.cos(ang) * (a.speed || 300), vy: Math.sin(ang) * (a.speed || 300),
+      life: a.life || 1.4, dmg: a.dmg || 8, shock: true,
+    });
+    m.fireFlash = 0.12; m.faceX = Math.cos(ang); m.faceY = Math.sin(ang);
+    spawnMuzzleFX(state, m.x + Math.cos(ang) * (m.w / 2), m.y + Math.sin(ang) * (m.h / 2), ang, '#bfe9ff');
+    if (bus && bus.emit) bus.emit('sfx', 'beam');
+    return true;
+  },
+
+  // 毒：やや遅い毒弾。被弾でプレイヤーに毒（継続ダメージ）を付与する（付与は projectiles 側）。
+  poison(ctx) {
+    const { state, m, a, dx, dy, see, bus } = ctx;
+    if (!see) return false;
+    const ang = Math.atan2(dy, dx);
+    state.ebullets.push({
+      x: m.x, y: m.y, vx: Math.cos(ang) * (a.speed || 180), vy: Math.sin(ang) * (a.speed || 180),
+      life: a.life || 2.4, dmg: a.dmg || 6, poison: true,
+    });
+    m.fireFlash = 0.12; m.faceX = Math.cos(ang); m.faceY = Math.sin(ang);
+    spawnMuzzleFX(state, m.x + Math.cos(ang) * (m.w / 2), m.y + Math.sin(ang) * (m.h / 2), ang, '#9be86a');
+    if (bus && bus.emit) bus.emit('sfx', 'shot');
+    return true;
+  },
+
+  // 炎：火球弾。被弾でプレイヤーを炎上（継続ダメージ）させる（付与は projectiles 側）。
+  burn(ctx) {
+    const { state, m, a, dx, dy, see, bus } = ctx;
+    if (!see) return false;
+    const ang = Math.atan2(dy, dx);
+    state.ebullets.push({
+      x: m.x, y: m.y, vx: Math.cos(ang) * (a.speed || 200), vy: Math.sin(ang) * (a.speed || 200),
+      life: a.life || 2.0, dmg: a.dmg || 7, burn: true,
+    });
+    m.fireFlash = 0.12; m.faceX = Math.cos(ang); m.faceY = Math.sin(ang);
+    spawnMuzzleFX(state, m.x + Math.cos(ang) * (m.w / 2), m.y + Math.sin(ang) * (m.h / 2), ang, '#ff9a3c');
+    if (bus && bus.emit) bus.emit('sfx', 'shot');
+    return true;
+  },
+
   // 突進：プレイヤー方向へ強い速度を加える（接触ダメージはAIの contact 経由）
   lunge(ctx) {
     const { m, a, dist, toP, see } = ctx;

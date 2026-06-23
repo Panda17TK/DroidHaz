@@ -111,6 +111,31 @@ export const FX_DRAW = {
     ctx.fillStyle = '#e6f3ff';
     ctx.fillRect(f.x - 1, f.y - 1, 2, 2);
   },
+  // 電撃アーク：放射状のジグザグ稲妻＋中心フラッシュ（決定論的＝チラつかない）。
+  shockarc(ctx, f, a) {
+    ctx.save(); ctx.translate(f.x, f.y);
+    ctx.strokeStyle = `rgba(190,235,255,${0.85 * a})`;
+    ctx.lineWidth = 2; ctx.lineCap = 'round';
+    const arms = 5, grow = 0.5 + (1 - a);
+    for (let k = 0; k < arms; k++) {
+      const base = (f.seed || 0) + (k / arms) * Math.PI * 2;
+      const ca = Math.cos(base), sa = Math.sin(base);
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      for (let s = 1; s <= 3; s++) {
+        const rr = s * 7 * grow, off = (s % 2) ? 4 : -4;
+        ctx.lineTo(ca * rr - sa * off, sa * rr + ca * off);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = `rgba(255,255,255,${0.5 * a})`;
+    ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  },
+  // 毒パフ：緑の半透明の膨らみ。
+  poison(ctx, f, a) {
+    ctx.fillStyle = `rgba(120,210,90,${0.45 * a})`;
+    ctx.beginPath(); ctx.arc(f.x, f.y, (f.r || 3) * (0.6 + (1 - a) * 0.8), 0, Math.PI * 2); ctx.fill();
+  },
   dust(ctx, f) {
     ctx.fillStyle = 'rgba(200,200,220,0.25)';
     ctx.beginPath(); ctx.arc(f.x, f.y, 2 + f.t * 10, 0, Math.PI * 2); ctx.fill();

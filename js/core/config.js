@@ -33,6 +33,12 @@ export const DEFAULT_CONFIG = {
     explodeSelfDmg: 25,  // 自爆ダメージ（近距離）
     weakDur: 1.2,        // 弱体化(被弾デバフ)の持続(s)：弱体化モーションのトリガ
     weakSlowMul: 0.82,   // 弱体化中の移動速度倍率
+    // 状態異常（敵の電撃/毒/炎上 攻撃で付与）。専用ダメージモーションのトリガにもなる。
+    shockDur: 0.45,      // 感電スタンの持続(s)：この間は移動/攻撃不能
+    poisonDur: 4.0,      // 毒の持続(s)
+    poisonDps: 7,        // 毒の毎秒ダメージ
+    burnDur: 3.0,        // 炎上の持続(s)
+    burnDps: 11,         // 炎上の毎秒ダメージ
   },
 
   // 近接武器（徒手空拳/刀）。コンボ・効果はデータ駆動。dmg は mods.meleeMul と乗算。
@@ -204,6 +210,33 @@ export const DEFAULT_CONFIG = {
       attacks: [
         { type: 'blink', cd: 3.0, maxTiles: 5, dur: 0.1, minDist: 70, standoff: 28 },
         { type: 'charge_melee', cd: 2.4, range: 40, reach: 30, windup: 0.6, dmg: 18, kb: 320 },
+      ],
+    },
+    // 電撃型：電撃弾で感電（短時間スタン）させてくる。
+    tesla: {
+      name: '帯電体', tier: 'normal', color: '#5ad1ff',
+      hp: 58, speed: 50, w: 22, h: 22, seeRange: 340, contactKB: 200,
+      attacks: [
+        { type: 'shock', cd: 1.8, dmg: 9, speed: 320, life: 1.3 },
+        { type: 'melee', cd: 1.2, dmg: 8, range: 12, arc: 360 },
+      ],
+    },
+    // 毒型：毒弾で継続ダメージを与えてくる。
+    spore: {
+      name: '胞子虫', tier: 'normal', color: '#8bd86a',
+      hp: 70, speed: 40, w: 22, h: 22, seeRange: 320, contactKB: 200,
+      attacks: [
+        { type: 'poison', cd: 1.6, dmg: 6, speed: 190, life: 2.4 },
+        { type: 'melee', cd: 2.0, dmg: 8, range: 10, arc: 90 },
+      ],
+    },
+    // 炎型：火球弾で炎上（継続ダメージ）させてくる。
+    pyro: {
+      name: '火炎甲虫', tier: 'normal', color: '#ff7a3c',
+      hp: 64, speed: 46, w: 22, h: 22, seeRange: 320, contactKB: 200,
+      attacks: [
+        { type: 'burn', cd: 1.8, dmg: 7, speed: 210, life: 2.0 },
+        { type: 'melee', cd: 1.4, dmg: 9, range: 12, arc: 360 },
       ],
     },
   },
