@@ -2,7 +2,7 @@
  * アプリシェル（HTML/JS/CSS/アイコン）をキャッシュしてオフライン起動を可能にする。
  * すべて相対パス＝GitHub Pages の任意サブパスでも動作する。
  */
-const CACHE = 'droidhaz-v18';
+const CACHE = 'droidhaz-v19';
 
 // install 時に必ず揃えるアプリシェル（これだけは原子的に addAll。失敗時は install を
 // 失敗させ、直前の正常な SW/キャッシュを温存する）。残りの ASSETS はベストエフォート。
@@ -31,10 +31,12 @@ const ASSETS = [
   './js/render/view.js', './js/render/pause-menu.js', './js/render/save-menu.js',
   './js/render/settings-panel.js', './js/render/weapon-radial.js',
   './js/render/title-screen.js', './js/render/scores-menu.js', './js/render/continue-menu.js',
+  './js/render/character-motion.js',
   './js/services/audio.js', './js/services/kv.js',
   './js/services/native.js',
   './js/state/binds.js', './js/state/data.js', './js/state/map.js', './js/state/maps.js',
   './js/state/state.js', './js/state/types.js', './js/state/upgrades.js', './js/state/stages.js',
+  './js/state/characters.js',
   './js/systems/ai.js', './js/systems/attacks.js', './js/systems/combat-core.js',
   './js/systems/combat.js', './js/systems/enemies.js', './js/systems/flowfield.js',
   './js/systems/fx.js', './js/systems/items.js', './js/systems/los.js',
