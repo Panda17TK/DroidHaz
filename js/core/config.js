@@ -97,6 +97,26 @@ export const DEFAULT_CONFIG = {
         reach: 52, arc: Math.PI * 0.9, cd: 0.20, dmg: 26, kb: 340,
         combo: 3, comboWindow: 0.5, staCost: 10, lunge: 200,
       },
+      mace: { // アコライト：メイス（重い一撃・大ノックバック）。kind は既存 'bag'。
+        id: 'mace', name: 'メイス', kind: 'bag',
+        reach: 52, arc: Math.PI * 0.95, cd: 0.22, dmg: 23, kb: 300,
+        combo: 3, comboWindow: 0.5, staCost: 9, lunge: 120,
+      },
+      katar: { // アサシン：二刀カタール（速い連撃）。kind は既存 'blade'。
+        id: 'katar', name: 'カタール', kind: 'blade',
+        reach: 58, arc: Math.PI * 1.05, cd: 0.13, dmg: 16, kb: 40,
+        combo: 5, comboWindow: 0.45, bleedChance: 0.12, staCost: 7, lunge: 140,
+      },
+      broom: { // ウィッチ：箒（杖系の薙ぎ払い・やや長射程）。kind は既存 'staff'。
+        id: 'broom', name: '箒', kind: 'staff',
+        reach: 62, arc: Math.PI * 1.05, cd: 0.20, dmg: 18, kb: 180,
+        combo: 3, comboWindow: 0.5, staCost: 8, lunge: 110,
+      },
+      mercsword: { // マーシナリー：剣（標準的な片手剣）。kind は既存 'blade'。
+        id: 'mercsword', name: '剣', kind: 'blade',
+        reach: 64, arc: Math.PI * 1.1, cd: 0.15, dmg: 20, kb: 80,
+        combo: 4, comboWindow: 0.5, staCost: 9, lunge: 130,
+      },
     },
   },
 
