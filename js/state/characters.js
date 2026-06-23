@@ -94,9 +94,89 @@ export const CHARACTERS = {
     },
     theme: { skin: '#b9c2cc', accent: '#5ad1ff', ammo: { ammo9: '弾', ammo12: 'セル', ammoBeam: 'EN', ammoNade: '弾頭' } },
   },
+  acolyte: {
+    id: 'acolyte', name: 'アコライト', blurb: '聖弾と打撃の聖職型',
+    drawId: 'acolyte',
+    ranged: [
+      single({ id: 'holybolt', name: '聖なる弾', projType: 'holy', dmg: 33 }),
+    ],
+    melee: ['mace'],
+    dropPool: {
+      ranged: [
+        spread({ id: 'sanctuary', name: '聖光弾', projType: 'holy', pellets: 5, dmg: 18, ammoType: 'ammo12' }),
+        beam({ id: 'judgment', name: '裁きの光', projType: 'holy' }),
+      ],
+      melee: ['staff'],
+    },
+    theme: { skin: '#f0d6b4', accent: '#ffe9a8', ammo: { ammo9: '聖印', ammo12: '聖片', ammoBeam: '聖光', ammoNade: '聖香' } },
+  },
+  assassin: {
+    id: 'assassin', name: 'アサシン', blurb: '投擲ダガーと二刀の機動型',
+    drawId: 'assassin',
+    ranged: [
+      rapid({ id: 'throwdagger', name: '投擲ダガー', projType: 'dagger', dmg: 15 }),
+    ],
+    melee: ['katar'],
+    dropPool: {
+      ranged: [
+        single({ id: 'venomknife', name: '毒刃', projType: 'dagger', dmg: 26, bleed: true, fireRate: 0.28, ammoType: 'ammo12', magSize: 8, mag: 8 }),
+        spread({ id: 'fanofknives', name: '飛刃乱舞', projType: 'dagger', pellets: 5, dmg: 14, ammoType: 'ammo12' }),
+      ],
+      melee: ['katana'],
+    },
+    theme: { skin: '#d9b896', accent: '#8a93a8', ammo: { ammo9: '小刀', ammo12: '毒刃', ammoBeam: '閃光', ammoNade: '煙玉' } },
+  },
+  witch: {
+    id: 'witch', name: 'ウィッチ', blurb: '火・氷・呪いの魔女型',
+    drawId: 'witch',
+    ranged: [
+      single({ id: 'hexbolt', name: '呪詛弾', projType: 'hex', dmg: 30 }),
+    ],
+    melee: ['broom'],
+    dropPool: {
+      ranged: [
+        aoe({ id: 'witchfire', name: '魔女火', projType: 'fire' }),
+        rapid({ id: 'frostshard', name: '氷晶', projType: 'ice', dmg: 13, slow: true, ammoType: 'ammo12', magSize: 18, mag: 18 }),
+      ],
+      melee: ['staff'],
+    },
+    theme: { skin: '#e3d3c4', accent: '#a85cff', ammo: { ammo9: '呪詛', ammo12: '氷晶', ammoBeam: '魔石', ammoNade: '魔女火' } },
+  },
+  swordmaster: {
+    id: 'swordmaster', name: 'ソードマスター', blurb: '居合いと剣気の侍型',
+    drawId: 'swordmaster',
+    ranged: [
+      single({ id: 'iaislash', name: '居合い斬り', projType: 'kiai', dmg: 34 }),
+    ],
+    melee: ['katana'],
+    dropPool: {
+      ranged: [
+        beam({ id: 'kenki', name: '剣気', projType: 'kiai' }),
+        spread({ id: 'sakura', name: '桜花乱', projType: 'kiai', pellets: 5, dmg: 18, ammoType: 'ammo12' }),
+      ],
+      melee: ['scythe'],
+    },
+    theme: { skin: '#e7c6a0', accent: '#7ad6c0', ammo: { ammo9: '気', ammo12: '桜片', ammoBeam: '剣気', ammoNade: '気弾' } },
+  },
+  mercenary: {
+    id: 'mercenary', name: 'マーシナリー', blurb: '弩と剣の傭兵型',
+    drawId: 'mercenary',
+    ranged: [
+      single({ id: 'crossbow', name: '弩', projType: 'bolt', dmg: 36, fireRate: 0.30, magSize: 8, mag: 8, ammoType: 'ammo12' }),
+    ],
+    melee: ['mercsword'],
+    dropPool: {
+      ranged: [
+        rapid({ id: 'throwaxe', name: '投斧', projType: 'bolt', dmg: 16 }),
+        aoe({ id: 'fragnade', name: '破片手榴弾', projType: 'frag' }),
+      ],
+      melee: ['arm'],
+    },
+    theme: { skin: '#d7a578', accent: '#c25a3c', ammo: { ammo9: '矢', ammo12: '太矢', ammoBeam: '導火', ammoNade: '榴弾' } },
+  },
 };
 
-export const CHARACTER_IDS = ['hero', 'mage', 'jk', 'skeleton', 'robot'];
+export const CHARACTER_IDS = ['hero', 'mage', 'jk', 'skeleton', 'robot', 'acolyte', 'assassin', 'witch', 'swordmaster', 'mercenary'];
 
 export function getCharacter(id) {
   return CHARACTERS[id] || CHARACTERS.hero;

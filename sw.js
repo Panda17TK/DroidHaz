@@ -2,7 +2,7 @@
  * アプリシェル（HTML/JS/CSS/アイコン）をキャッシュしてオフライン起動を可能にする。
  * すべて相対パス＝GitHub Pages の任意サブパスでも動作する。
  */
-const CACHE = 'droidhaz-v21';
+const CACHE = 'droidhaz-v22';
 
 // install 時に必ず揃えるアプリシェル（これだけは原子的に addAll。失敗時は install を
 // 失敗させ、直前の正常な SW/キャッシュを温存する）。残りの ASSETS はベストエフォート。
@@ -32,6 +32,7 @@ const ASSETS = [
   './js/render/settings-panel.js', './js/render/weapon-radial.js',
   './js/render/title-screen.js', './js/render/scores-menu.js', './js/render/continue-menu.js',
   './js/render/character-motion.js', './js/render/character-sprites.js',
+  './js/render/facing.js',
   './js/services/audio.js', './js/services/kv.js',
   './js/services/native.js',
   './js/state/binds.js', './js/state/data.js', './js/state/map.js', './js/state/maps.js',

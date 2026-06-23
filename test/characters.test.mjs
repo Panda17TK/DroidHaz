@@ -19,9 +19,22 @@ function mkState(charId) {
 }
 
 // ===== applyCharacter =====
-test('5キャラが登録されている', () => {
-  assert.deepEqual(CHARACTER_IDS, ['hero', 'mage', 'jk', 'skeleton', 'robot']);
+test('10キャラが登録されている（既存5＋新ジョブ5）', () => {
+  assert.deepEqual(CHARACTER_IDS, ['hero', 'mage', 'jk', 'skeleton', 'robot', 'acolyte', 'assassin', 'witch', 'swordmaster', 'mercenary']);
   for (const id of CHARACTER_IDS) assert.ok(CHARACTERS[id], id);
+});
+
+test('新ジョブ5体は描画ID・テーマ・近接・遠隔を備える', () => {
+  for (const id of ['acolyte', 'assassin', 'witch', 'swordmaster', 'mercenary']) {
+    const c = CHARACTERS[id];
+    assert.equal(c.id, id, id + ' id');
+    assert.equal(c.drawId, id, id + ' drawId');
+    assert.ok(c.theme && c.theme.accent && c.theme.skin, id + ' theme');
+    assert.ok(Array.isArray(c.melee) && c.melee.length >= 1, id + ' melee');
+    assert.ok(Array.isArray(c.ranged) && c.ranged.length >= 1, id + ' ranged');
+    // 初期近接は config.melee.weapons に存在する
+    assert.ok(CONFIG.melee.weapons[c.melee[0]], id + ' melee def: ' + c.melee[0]);
+  }
 });
 
 test('hero: CONFIG.weapons をそのまま初期遠隔に、近接は徒手空拳', () => {
