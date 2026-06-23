@@ -31,6 +31,8 @@ export const DEFAULT_CONFIG = {
     explodeRadius: 76,   // 爆発半径
     explodeDmg: 150,     // 爆発の最大ダメージ
     explodeSelfDmg: 25,  // 自爆ダメージ（近距離）
+    weakDur: 1.2,        // 弱体化(被弾デバフ)の持続(s)：弱体化モーションのトリガ
+    weakSlowMul: 0.82,   // 弱体化中の移動速度倍率
   },
 
   // 近接武器（徒手空拳/刀）。コンボ・効果はデータ駆動。dmg は mods.meleeMul と乗算。
@@ -52,6 +54,42 @@ export const DEFAULT_CONFIG = {
         combo: 4, comboWindow: 0.5,
         bleedChance: 0.12,   // まれに出血を付与
         staCost: 9, lunge: 130,
+      },
+      // ===== キャラ別近接（kind が描画を分岐。挙動は fists/katana と同じ機構）=====
+      staff: { // 魔法使い：杖殴り（やや長射程・遅め）
+        id: 'staff', name: '杖', kind: 'staff',
+        reach: 60, arc: Math.PI * 1.0, cd: 0.20, dmg: 18, kb: 180,
+        combo: 3, comboWindow: 0.5, staCost: 8, lunge: 110,
+      },
+      bag: { // 女子高生：通学カバン（重い一撃・大ノックバック）
+        id: 'bag', name: '通学カバン', kind: 'bag',
+        reach: 50, arc: Math.PI * 1.0, cd: 0.22, dmg: 22, kb: 280,
+        combo: 3, comboWindow: 0.5, staCost: 9, lunge: 120,
+      },
+      shinai: { // 女子高生：竹刀（速い連撃）
+        id: 'shinai', name: '竹刀', kind: 'blade',
+        reach: 64, arc: Math.PI * 1.1, cd: 0.15, dmg: 17, kb: 60,
+        combo: 4, comboWindow: 0.5, staCost: 8, lunge: 130,
+      },
+      scythe: { // 骸骨：大鎌（広範囲・出血）
+        id: 'scythe', name: '大鎌', kind: 'scythe',
+        reach: 70, arc: Math.PI * 1.25, cd: 0.18, dmg: 24, kb: 40,
+        combo: 3, comboWindow: 0.5, bleedChance: 0.2, staCost: 10, lunge: 120,
+      },
+      bonesword: { // 骸骨：骨剣
+        id: 'bonesword', name: '骨剣', kind: 'blade',
+        reach: 62, arc: Math.PI * 1.1, cd: 0.16, dmg: 19, kb: 0,
+        combo: 4, comboWindow: 0.5, bleedChance: 0.1, staCost: 9, lunge: 130,
+      },
+      drill: { // ロボット：ドリル（高速・狭角の連突き）
+        id: 'drill', name: 'ドリル', kind: 'drill',
+        reach: 46, arc: Math.PI * 0.5, cd: 0.10, dmg: 12, kb: 30,
+        combo: 5, comboWindow: 0.45, staCost: 6, lunge: 100,
+      },
+      arm: { // ロボット：アーム（重い拳・特大ノックバック）
+        id: 'arm', name: 'アーム', kind: 'arm',
+        reach: 52, arc: Math.PI * 0.9, cd: 0.20, dmg: 26, kb: 340,
+        combo: 3, comboWindow: 0.5, staCost: 10, lunge: 200,
       },
     },
   },

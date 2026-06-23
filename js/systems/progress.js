@@ -11,6 +11,7 @@ export const DEFAULT_PROGRESS = {
   allCleared: false,
   endlessUnlocked: false,
   lastMode: 'stage', // 'stage' | 'endless'
+  charId: 'hero',    // 選択中のプレイアブルキャラ（不明値は applyCharacter が hero にフォールバック）
 };
 
 export function normalizeProgress(o) {
@@ -20,6 +21,7 @@ export function normalizeProgress(o) {
     allCleared: !!p.allCleared,
     endlessUnlocked: !!p.endlessUnlocked,
     lastMode: (p.lastMode === 'endless') ? 'endless' : 'stage',
+    charId: (typeof p.charId === 'string' && p.charId) ? p.charId : 'hero',
   };
 }
 

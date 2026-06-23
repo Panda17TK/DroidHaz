@@ -136,6 +136,8 @@ export function updateCombat(state, dt, bus, input, audio) {
 
   // 無敵時間の減衰（赤いままになるバグ防止）
   if (p.iTime > 0) { p.iTime -= dt; if (p.iTime < 0) p.iTime = 0; }
+  // 弱体化（被弾デバフ）の減衰。発火（HP減少検出）は本関数末尾で行う＝弱体化モーションのトリガ。
+  if (p.weakT > 0) { p.weakT -= dt; if (p.weakT < 0) p.weakT = 0; }
   // マズル/反動の減衰（描画用）
   if (p.muzzleT > 0) { p.muzzleT -= dt; if (p.muzzleT < 0) p.muzzleT = 0; }
   if (p.meleeT > 0) { p.meleeT -= dt; if (p.meleeT < 0) p.meleeT = 0; }
@@ -170,7 +172,8 @@ export function updateCombat(state, dt, bus, input, audio) {
   }
   p._dashPrev = dash;
 
-  const spd = p.baseSpeed * CONFIG.player.speedMul * p.buffs.speed * mods.moveMul * (dash ? CONFIG.player.dashMul : 1);
+  const weakMul = (p.weakT > 0) ? (CONFIG.player.weakSlowMul || 0.82) : 1; // 弱体化中は鈍足
+  const spd = p.baseSpeed * CONFIG.player.speedMul * p.buffs.speed * mods.moveMul * weakMul * (dash ? CONFIG.player.dashMul : 1);
   let vx = dirx * spd * speedScale * dt, vy = diry * spd * speedScale * dt;
   if (moving) { p.facing.x = dirx; p.facing.y = diry; }
 
@@ -215,8 +218,9 @@ export function updateCombat(state, dt, bus, input, audio) {
     // mag/_autoRT 等のランタイム状態は runtime 側(curWeapon)に残す。
     const w = liveWeapon(curWeapon);
 
-    if (w.id === 'beam') {
-      // ビームは ammoBeam セルを1発ずつ消費
+    if (w.magSize == null) {
+      // ビーム系（弾倉なし=ammoBeam を直接消費。hero beam / 魔法使い 雷 / ロボ レーザー）
+      // ※ 貫通ヒットスキャン。色は弾種を問わず共通（演出の簡素化）。
       if ((p.inv.ammoBeam || 0) <= 0) {
         bus.emit('ui:toast', 'Beam セル切れ');
       } else {
@@ -275,7 +279,13 @@ export function updateCombat(state, dt, bus, input, audio) {
         for (let i = 0; i < shots; i++) {
           const ang = aimAng + (Math.random() - 0.5) * (w.spread || 0) * 2;
           const vx = Math.cos(ang) * baseSpd, vy = Math.sin(ang) * baseSpd;
-          state.bullets.push({ x: p.x + Math.cos(ang) * 14, y: p.y + Math.sin(ang) * 14, vx, vy, life: 0.9, dmg: bulletDmg });
+          // projType（描画）と効果フラグ（aoe=着弾炸裂 / bleed/slow=状態異常 / homing=旋回追尾）を弾に付与。
+          // 挙動は projectiles.js が解釈し、既存の explode/bleed 機構を再利用する。
+          state.bullets.push({
+            x: p.x + Math.cos(ang) * 14, y: p.y + Math.sin(ang) * 14, vx, vy, life: 0.9, dmg: bulletDmg,
+            projType: w.projType || null,
+            aoe: !!w.aoe, bleed: !!w.bleed, slow: !!w.slow, homing: w.homing ? 3.2 : 0,
+          });
         }
         // マズルフラッシュ＋反動（描画用）。銃口位置は向きの先。
         spawnMuzzleFX(state, p.x + dir.x * 16, p.y + dir.y * 16, aimAng, w.id === 'shotgun' ? '#ffd08a' : '#fff1c0');
@@ -319,4 +329,8 @@ export function updateCombat(state, dt, bus, input, audio) {
   // 開発者モードのゴッドモード：HPを満タンに固定
   if (state.devGod) p.hp = p.hpMax || 100;
   p.hp = clamp(p.hp, 0, p.hpMax || 100);
+  // 弱体化トリガ：このフレームで HP が減った（被弾）なら weakT をセット（弱体化モーション）。
+  if (p._hpPrev == null) p._hpPrev = p.hp;
+  if (p.hp < p._hpPrev - 0.001 && !state.gameOver) p.weakT = CONFIG.player.weakDur || 1.2;
+  p._hpPrev = p.hp;
 }

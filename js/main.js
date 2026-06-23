@@ -36,6 +36,7 @@ import { mountScoresMenu } from './render/scores-menu.js';
 import { mountContinueMenu } from './render/continue-menu.js';
 import { setAppPhase, isPlaying, isSimPaused } from './core/app-state.js';
 import { readProgress, writeProgress, markStageReached } from './systems/progress.js';
+import { applyCharacter } from './state/characters.js';
 import { stageDef, STAGES, STAGE_WAVES, STAGE_MAX } from './state/stages.js';
 import {
   onAppBackground, shouldAutoPause,
@@ -205,6 +206,7 @@ if (!canvas) {
   // 進行度（到達ステージ・エンドレス解放・最終モード）
   let progress = readProgress();
   if (progress.lastMode) state.mode = progress.lastMode;
+  applyCharacter(state, progress.charId); // 選択中キャラを反映（タイトル表示前から）
 
   // REQ-TOUCH-4: forceTouchUi＋環境からタッチUIの表示可否を決め、即時反映する。
   // F5a: タッチUIは playing フェーズのときだけ表示する。
@@ -233,6 +235,7 @@ if (!canvas) {
     const stage = Math.max(1, (opts && opts.stage) | 0 || 1);
     resetState(state);
     applyPlayerConfig(state);
+    applyCharacter(state, progress.charId); // 選択キャラの武器/近接/描画をランに反映
     state.mode = mode;
     state.stage = stage;
     state.mapId = stageDef(stage).mapId;
@@ -311,12 +314,15 @@ if (!canvas) {
     state,
     getProgress: () => progress,
     hasSaves: () => listSlotMetas().some((m) => !m.empty),
+    getCharId: () => progress.charId,
     actions: {
       start: (mode) => startGame(mode),
       continue: () => uiCtl.push('continue'),   // ロード/ステージ選択（REQ-SAVE-2）
       openSettings: () => uiCtl.push('settings'),
       openScores: () => uiCtl.push('scores'),
       onModeChange: (m) => { progress.lastMode = m; writeProgress(progress); },
+      // キャラ選択：永続化し、タイトル表示中のプレビューにも即反映。
+      onCharChange: (id) => { progress.charId = id; writeProgress(progress); applyCharacter(state, id); },
     },
   });
   uiViews.push(pauseView, saveView, settingsView, scoresView, continueView, titleView);
@@ -435,6 +441,7 @@ if (!canvas) {
     if (!ready) return;
     progress = readProgress();
     if (progress.lastMode) state.mode = progress.lastMode;
+    applyCharacter(state, progress.charId);
     try { titleView.render(state); } catch (_e) {}
   }).catch(() => {});
 

@@ -37,7 +37,7 @@ export function createInitialState() {
 		player: {
 			x: 0, y: 0, w: 22, h: 22,
 			vx: 0, vy: 0,
-			hp: 100, hpMax: 100, iTime: 0,
+			hp: 100, hpMax: 100, iTime: 0, weakT: 0,
 			baseSpeed: 110,
 			facing: { x: 1, y: 0 },
 			staMax: 100, sta: 100,
