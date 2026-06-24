@@ -812,7 +812,10 @@ function drawBodyPixelated(ctx, id, a, flip) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   if (flip < 0) ctx.scale(-1, 1);
-  const dx = ART.x0 * BODY_SCALE, dy = ART.y0 * BODY_SCALE, dw = ART.w * BODY_SCALE, dh = ART.h * BODY_SCALE;
+  // 横/斜め向きは横幅を縮めて細いシルエットに（横顔・斜め姿は正面より細く見える）。ART は左右対称なので中央基準で縮小。
+  const nf = a.dir === 'side' ? 0.80 : (a.dir === 'frontDiag' || a.dir === 'backDiag') ? 0.90 : 1;
+  const dy = ART.y0 * BODY_SCALE, dh = ART.h * BODY_SCALE;
+  const dw = ART.w * BODY_SCALE * nf, dx = -dw / 2;
   const o = BODY_SCALE / DOT; // 1ドット分の世界オフセット
   for (const off of [[-o, 0], [o, 0], [0, -o], [0, o]]) ctx.drawImage(_olc, dx + off[0], dy + off[1], dw, dh);
   ctx.drawImage(_pxc, dx, dy, dw, dh);
