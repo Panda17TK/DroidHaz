@@ -820,6 +820,17 @@ function drawBodyPixelated(ctx, id, a, flip) {
   ctx.restore();
 }
 
+// 武器を握る手のアンカー（本体ローカル・右向き）。近側(+x)の腕の手の位置。左右は flip で鏡映。
+function weaponHandFor(dir) {
+  switch (dir) {
+    case 'side': return { x: 7.5, y: 1 };
+    case 'frontDiag': return { x: 7, y: 1.5 };
+    case 'backDiag': return { x: 7, y: 1.5 };
+    case 'back': return { x: 6.5, y: 2 };
+    default: return { x: 6.5, y: 2 }; // front
+  }
+}
+
 // ===== メイン：プレイヤー1体を描く（renderer から呼ぶ）=====
 // ix,iy=補間済みワールド座標, A=補間係数, nowS=現在秒。
 export function drawCharacter(ctx, state, ix, iy, A, nowS) {
@@ -845,6 +856,24 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
   }
 
   ctx.save(); ctx.translate(px, py);
+
+  // 武器/近接は「実在する手」のアンカーから描き、向きで前後の深度を切替（独立した腕＝第3の手を廃止）。
+  const behindWeapon = pl.facing.y < -0.3; // 上/奥を向くと胴の後ろで構える
+  const hand = weaponHandFor(dir);
+  const handX = (flip < 0 ? -hand.x : hand.x) * BODY_SCALE, handY = hand.y * BODY_SCALE;
+  const drawWeaponLayer = () => {
+    if (pl.meleeT > 0) { drawMeleeSwing(ctx, pl.meleeKind, pl, ang); return; }
+    ctx.save(); ctx.translate(handX, handY); ctx.rotate(ang); ctx.scale(1.6, 1.6);
+    drawWeaponSilhouette(ctx, pl.weapons[pl.curW] || {}, recoil);
+    ctx.fillStyle = skinOf(id); ctx.beginPath(); ctx.arc(1.5, 0.5, 1.7, 0, Math.PI * 2); ctx.fill(); // 握る手
+    if (pl.muzzleT > 0) {
+      const def = pl.weapons[pl.curW] || {};
+      ctx.fillStyle = def.projType ? (PROJ_COLOR[def.projType] || '#fff1c0') : '#fff1c0';
+      ctx.beginPath(); ctx.moveTo(26 - recoil, 0); ctx.lineTo(19 - recoil, 3.5); ctx.lineTo(21 - recoil, 0); ctx.lineTo(19 - recoil, -3.5); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  };
+  if (behindWeapon) drawWeaponLayer();
 
   // 本体：ドット格子バッファへ描画→ニアレストネイバー拡大（ピクセルアート化＋陰影＋輪郭）
   drawBodyPixelated(ctx, id, { motion, hitFlash, nowS, dir, back: dir === 'back' }, flip);
@@ -895,20 +924,8 @@ export function drawCharacter(ctx, state, ix, iy, A, nowS) {
   }
   ctx.restore(); // 本体スケール終わり
 
-  // 構え＋遠隔武器（手に持つ：本体に合わせて拡大し、照準方向へ前腕を伸ばして握る）
-  ctx.save(); ctx.rotate(ang); ctx.scale(1.6, 1.6);
-  ctx.fillStyle = skinOf(id); ctx.fillRect(1, -1.5, 7 - recoil * 0.3, 3); // 前腕（肩→握り）
-  drawWeaponSilhouette(ctx, pl.weapons[pl.curW] || {}, recoil);
-  ctx.fillStyle = skinOf(id); ctx.beginPath(); ctx.arc(7, 0.5, 1.9, 0, Math.PI * 2); ctx.fill(); // 握る手
-  if (pl.muzzleT > 0) {
-    const def = pl.weapons[pl.curW] || {};
-    ctx.fillStyle = def.projType ? (PROJ_COLOR[def.projType] || '#fff1c0') : '#fff1c0';
-    ctx.beginPath(); ctx.moveTo(26 - recoil, 0); ctx.lineTo(19 - recoil, 3.5); ctx.lineTo(21 - recoil, 0); ctx.lineTo(19 - recoil, -3.5); ctx.closePath(); ctx.fill();
-  }
-  ctx.restore();
-
-  // 近接スイング（kind 別）
-  if (pl.meleeT > 0) drawMeleeSwing(ctx, pl.meleeKind, pl, ang);
+  // 手前向き（下/横）の武器・近接は本体の前に重ねる
+  if (!behindWeapon) drawWeaponLayer();
 
   ctx.restore();
 }
