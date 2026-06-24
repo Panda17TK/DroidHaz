@@ -56,8 +56,8 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor, opts) {
   const orient = opts.orient || 'front';
   // 小さなチビ頭では目がほぼ顔幅いっぱい。寄せ過ぎると頭からはみ出すので shift は控えめにし、
   // 「向いた感じ」は主に奥目(画面左 -ex)の横圧縮(farK)＋本体の傾き(sx)で表現する。
-  const shift = orient === 'side' ? hw * 0.05 : orient === 'frontDiag' ? hw * 0.03 : 0;
-  const farK = orient === 'frontDiag' ? 0.60 : orient === 'side' ? 0.32 : 1; // 横向きも奥目は消さず小さく残す（片目だと崩れて見える）
+  const shift = orient === 'side' ? hw * 0.12 : orient === 'frontDiag' ? hw * 0.05 : 0;
+  const farK = orient === 'frontDiag' ? 0.55 : orient === 'side' ? 0 : 1; // side=真の横顔（奥目を省略）
   const profile = orient === 'side';
   // 奥目(sgn=-1)を中心 -ex で横圧縮する transform を張る。near(sgn=+1)は等倍。
   const eyeXform = (sgn) => { if (sgn < 0 && farK < 1) { ctx.translate(-ex, 0); ctx.scale(farK, 1); ctx.translate(ex, 0); } };
@@ -180,7 +180,12 @@ function drawFace(ctx, hy, hw, style, motion, eyeColor, opts) {
     }
   }
 
-  // （旧：横向きの鼻先三角は頭の外に飛び出して見えたため廃止）
+  // 鼻筋（真の横顔のみ・human）。頭の前縁(+x)に小さく付ける＝輪郭の鼻の出っ張り。肌色に依存しない柔らかな陰で。
+  if (profile && style === 'human') {
+    ctx.fillStyle = 'rgba(150,100,72,0.5)';
+    const nx = hw * 0.5; // 頭の前縁付近
+    ctx.beginPath(); ctx.moveTo(nx - 0.3, ey + 0.9); ctx.lineTo(nx + 1.3, ey + 2.0); ctx.lineTo(nx - 0.3, ey + 2.7); ctx.closePath(); ctx.fill();
+  }
 
   // 口（横向きはごく僅かに手前へ・少しだけ狭める）
   const mShift = profile ? hw * 0.04 : 0;
