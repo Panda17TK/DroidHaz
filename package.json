@@ -1,6 +1,6 @@
 {
   "name": "droidhaz",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "見下ろし型サバイバル・アクションシューター（ウェーブ制ローグライト）。静的PWA＋Capacitorでネイティブ化可。",
   "type": "module",
   "private": true,
