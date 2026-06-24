@@ -253,11 +253,11 @@ function drawHeroBody(ctx, a) {
   const { ox, oy } = upperOffset(motion);
   const { back, sx, orient } = dirInfo(a);
   // 脚
-  ctx.fillStyle = PANTS; ctx.fillRect(-5, 5, 4, 8); ctx.fillRect(1, 5, 4, 8);
-  ctx.fillStyle = '#1c2c52'; ctx.fillRect(-5, 11, 4, 2); ctx.fillRect(1, 11, 4, 2);
+  ctx.fillStyle = PANTS; ctx.fillRect(a.dir === 'side' ? -3 : -5, 5, 4, 8); ctx.fillRect(a.dir === 'side' ? 0 : 1, 5, 4, 8);
+  ctx.fillStyle = '#1c2c52'; ctx.fillRect(a.dir === 'side' ? -3 : -5, 11, 4, 2); ctx.fillRect(a.dir === 'side' ? 0 : 1, 11, 4, 2);
   ctx.save(); ctx.translate(ox + sx, oy);
   // 腕
-  ctx.fillStyle = SKIN; ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
+  ctx.fillStyle = SKIN; if (a.dir !== 'side') ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
   // 胴
   ctx.fillStyle = SHIRT; ctx.fillRect(-6, -4, 12, 9);
   ctx.fillStyle = SHIRT_SH; ctx.fillRect(-6, 3, 12, 2);
@@ -292,8 +292,8 @@ function drawMageBody(ctx, a) {
   ctx.fillStyle = ROBE_SH; ctx.fillRect(-7, 11, 14, 2);
   ctx.save(); ctx.translate(ox + sx, oy);
   // 腕（袖）
-  ctx.fillStyle = ROBE; ctx.fillRect(-9, -2, 4, 8); ctx.fillRect(5, -2, 4, 8);
-  ctx.fillStyle = TRIM; ctx.fillRect(-9, 5, 4, 1.5); ctx.fillRect(5, 5, 4, 1.5);
+  ctx.fillStyle = ROBE; if (a.dir !== 'side') ctx.fillRect(-9, -2, 4, 8); ctx.fillRect(5, -2, 4, 8);
+  ctx.fillStyle = TRIM; if (a.dir !== 'side') ctx.fillRect(-9, 5, 4, 1.5); ctx.fillRect(5, 5, 4, 1.5);
   // 胴（ローブ上部）
   ctx.fillStyle = ROBE; ctx.fillRect(-6, -4, 12, 8);
   ctx.fillStyle = TRIM; ctx.fillRect(-1, -4, 2, 8); // 前立て
@@ -335,9 +335,9 @@ function drawJkBody(ctx, a) {
   ctx.lineTo(5.5, -0.5); ctx.quadraticCurveTo(8.5, -3, 7, -11);
   ctx.quadraticCurveTo(0, -18.5, -7, -11); ctx.closePath(); ctx.fill();
   // 腕（袖口の紺＋手）
-  ctx.fillStyle = SAILOR; ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
-  ctx.fillStyle = NAVY; ctx.fillRect(-8, -2, 3, 1.2); ctx.fillRect(5, -2, 3, 1.2);
-  ctx.fillStyle = SKIN; ctx.fillRect(-8, 4.6, 3, 2); ctx.fillRect(5, 4.6, 3, 2);
+  ctx.fillStyle = SAILOR; if (a.dir !== 'side') ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
+  ctx.fillStyle = NAVY; if (a.dir !== 'side') ctx.fillRect(-8, -2, 3, 1.2); ctx.fillRect(5, -2, 3, 1.2);
+  ctx.fillStyle = SKIN; if (a.dir !== 'side') ctx.fillRect(-8, 4.6, 3, 2); ctx.fillRect(5, 4.6, 3, 2);
   // 胴：白セーラー＋紺の大きな襟＋白2本ライン
   ctx.fillStyle = SAILOR; ctx.fillRect(-6, -4, 12, 9);
   if (back) {
@@ -380,10 +380,10 @@ function drawSkeletonBody(ctx, a) {
   const { back, sx, orient } = dirInfo(a);
   // 脚（骨）
   ctx.strokeStyle = BONE; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(-3, 4); ctx.lineTo(-3, 12); ctx.moveTo(3, 4); ctx.lineTo(3, 12); ctx.stroke();
+  ctx.beginPath(); const slx = a.dir === 'side' ? 1.5 : 3; ctx.moveTo(-slx, 4); ctx.lineTo(-slx, 12); ctx.moveTo(slx, 4); ctx.lineTo(slx, 12); ctx.stroke();
   ctx.save(); ctx.translate(ox + sx, oy);
   // 腕（骨）
-  ctx.beginPath(); ctx.moveTo(-6, -2); ctx.lineTo(-8, 5); ctx.moveTo(6, -2); ctx.lineTo(8, 5); ctx.stroke();
+  ctx.beginPath(); if (a.dir !== 'side') { ctx.moveTo(-6, -2); ctx.lineTo(-8, 5); } ctx.moveTo(6, -2); ctx.lineTo(8, 5); ctx.stroke();
   // 肋骨＋背骨
   ctx.lineWidth = 1.4;
   ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 5); ctx.stroke(); // 背骨
@@ -414,12 +414,12 @@ function drawRobotBody(ctx, a) {
   const { ox, oy } = upperOffset(motion);
   const { back, sx, orient } = dirInfo(a);
   // 脚（メカ脚）
-  ctx.fillStyle = METAL_SH; ctx.fillRect(-5, 5, 4, 8); ctx.fillRect(1, 5, 4, 8);
-  ctx.fillStyle = '#2a3038'; ctx.fillRect(-5, 11, 4, 2); ctx.fillRect(1, 11, 4, 2);
+  ctx.fillStyle = METAL_SH; ctx.fillRect(a.dir === 'side' ? -3 : -5, 5, 4, 8); ctx.fillRect(a.dir === 'side' ? 0 : 1, 5, 4, 8);
+  ctx.fillStyle = '#2a3038'; ctx.fillRect(a.dir === 'side' ? -3 : -5, 11, 4, 2); ctx.fillRect(a.dir === 'side' ? 0 : 1, 11, 4, 2);
   ctx.save(); ctx.translate(ox + sx, oy);
   // 腕（関節）
-  ctx.fillStyle = METAL_SH; ctx.fillRect(-9, -2, 4, 7); ctx.fillRect(5, -2, 4, 7);
-  ctx.fillStyle = ACC; ctx.fillRect(-9, 1, 4, 1); ctx.fillRect(5, 1, 4, 1);
+  ctx.fillStyle = METAL_SH; if (a.dir !== 'side') ctx.fillRect(-9, -2, 4, 7); ctx.fillRect(5, -2, 4, 7);
+  ctx.fillStyle = ACC; if (a.dir !== 'side') ctx.fillRect(-9, 1, 4, 1); ctx.fillRect(5, 1, 4, 1);
   // 胴（パネル＋コアライト）
   ctx.fillStyle = METAL; roundedRect(ctx, -6, -4, 12, 9, 2); ctx.fill();
   ctx.fillStyle = PANEL; ctx.fillRect(-5, -1, 10, 1);
@@ -459,8 +459,8 @@ function drawAcolyteBody(ctx, a) {
   ctx.fillStyle = TRIM; ctx.fillRect(-7, 12.2, 14, 1);
   ctx.save(); ctx.translate(ox + sx, oy);
   // 腕（袖）
-  ctx.fillStyle = ROBE; ctx.fillRect(-9, -2, 4, 8); ctx.fillRect(5, -2, 4, 8);
-  ctx.fillStyle = TRIM; ctx.fillRect(-9, 5, 4, 1.2); ctx.fillRect(5, 5, 4, 1.2);
+  ctx.fillStyle = ROBE; if (a.dir !== 'side') ctx.fillRect(-9, -2, 4, 8); ctx.fillRect(5, -2, 4, 8);
+  ctx.fillStyle = TRIM; if (a.dir !== 'side') ctx.fillRect(-9, 5, 4, 1.2); ctx.fillRect(5, 5, 4, 1.2);
   // 胴（法衣）＋前立て＋十字
   ctx.fillStyle = ROBE; ctx.fillRect(-6, -4, 12, 8);
   ctx.fillStyle = TRIM; ctx.fillRect(-1, -4, 2, 8);
@@ -490,13 +490,13 @@ function drawAssassinBody(ctx, a) {
   const { ox, oy } = upperOffset(motion);
   const { back, sx, orient } = dirInfo(a);
   // 脚（細い黒ズボン）
-  ctx.fillStyle = OUT; ctx.fillRect(-4, 5, 3, 8); ctx.fillRect(1, 5, 3, 8);
-  ctx.fillStyle = OUT_SH; ctx.fillRect(-4, 11, 3, 2); ctx.fillRect(1, 11, 3, 2);
+  ctx.fillStyle = OUT; ctx.fillRect(a.dir === 'side' ? -2.5 : -4, 5, 3, 8); ctx.fillRect(a.dir === 'side' ? 0 : 1, 5, 3, 8);
+  ctx.fillStyle = OUT_SH; ctx.fillRect(a.dir === 'side' ? -2.5 : -4, 11, 3, 2); ctx.fillRect(a.dir === 'side' ? 0 : 1, 11, 3, 2);
   ctx.save(); ctx.translate(ox + sx, oy);
   // スカーフ（後方 -x になびく）
   ctx.fillStyle = SCARF; ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(-9, 1 + Math.sin((nowS || 0) * 6) * 1.2); ctx.lineTo(-3, 1); ctx.closePath(); ctx.fill();
   // 腕（細い黒袖）
-  ctx.fillStyle = OUT; ctx.fillRect(-8, -2, 2.6, 7); ctx.fillRect(5.4, -2, 2.6, 7);
+  ctx.fillStyle = OUT; if (a.dir !== 'side') ctx.fillRect(-8, -2, 2.6, 7); ctx.fillRect(5.4, -2, 2.6, 7);
   // 胴（黒装束）＋胸ベルト＋ホルスター
   ctx.fillStyle = OUT; ctx.fillRect(-5.5, -4, 11, 9);
   ctx.fillStyle = OUT_SH; ctx.fillRect(-5.5, 3, 11, 2);
@@ -532,8 +532,8 @@ function drawWitchBody(ctx, a) {
   ctx.fillStyle = ROBE_SH; ctx.fillRect(-6, 9, 12, 1.5);
   ctx.save(); ctx.translate(ox + sx, oy);
   // 腕（袖）
-  ctx.fillStyle = ROBE; ctx.fillRect(-9, -2, 4, 8); ctx.fillRect(5, -2, 4, 8);
-  ctx.fillStyle = TRIM; ctx.fillRect(-9, 5, 4, 1.2); ctx.fillRect(5, 5, 4, 1.2);
+  ctx.fillStyle = ROBE; if (a.dir !== 'side') ctx.fillRect(-9, -2, 4, 8); ctx.fillRect(5, -2, 4, 8);
+  ctx.fillStyle = TRIM; if (a.dir !== 'side') ctx.fillRect(-9, 5, 4, 1.2); ctx.fillRect(5, 5, 4, 1.2);
   // 胴＋胸リボン
   ctx.fillStyle = ROBE; ctx.fillRect(-6, -4, 12, 8);
   if (!back) { ctx.fillStyle = TRIM; ctx.fillRect(-2, -1, 4, 1.4); }
@@ -567,7 +567,7 @@ function drawSwordmasterBody(ctx, a) {
   ctx.fillStyle = '#e7ddc8'; ctx.fillRect(-0.8, 1, 1.6, 12);
   ctx.save(); ctx.translate(ox + sx, oy);
   // 腕（広い袖）
-  ctx.fillStyle = KIMONO; ctx.fillRect(-9, -2, 4, 8); ctx.fillRect(5, -2, 4, 8);
+  ctx.fillStyle = KIMONO; if (a.dir !== 'side') ctx.fillRect(-9, -2, 4, 8); ctx.fillRect(5, -2, 4, 8);
   // 胴（合わせ）＋帯
   ctx.fillStyle = KIMONO; ctx.fillRect(-6, -4, 12, 9);
   if (!back) { ctx.fillStyle = '#e7ddc8'; ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(0, 3); ctx.lineTo(6, -4); ctx.lineTo(4, -4); ctx.lineTo(0, 1.5); ctx.lineTo(-4, -4); ctx.closePath(); ctx.fill(); }
@@ -599,12 +599,12 @@ function drawMercenaryBody(ctx, a) {
   const { ox, oy } = upperOffset(motion);
   const { back, sx, orient } = dirInfo(a);
   // 脚
-  ctx.fillStyle = PANTS; ctx.fillRect(-5, 5, 4, 8); ctx.fillRect(1, 5, 4, 8);
-  ctx.fillStyle = '#222a32'; ctx.fillRect(-5, 11, 4, 2); ctx.fillRect(1, 11, 4, 2);
+  ctx.fillStyle = PANTS; ctx.fillRect(a.dir === 'side' ? -3 : -5, 5, 4, 8); ctx.fillRect(a.dir === 'side' ? 0 : 1, 5, 4, 8);
+  ctx.fillStyle = '#222a32'; ctx.fillRect(a.dir === 'side' ? -3 : -5, 11, 4, 2); ctx.fillRect(a.dir === 'side' ? 0 : 1, 11, 4, 2);
   ctx.save(); ctx.translate(ox + sx, oy);
   // 腕（肌＋前腕ガード）
-  ctx.fillStyle = SKIN; ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
-  ctx.fillStyle = '#5a3a22'; ctx.fillRect(-8, 2, 3, 2); ctx.fillRect(5, 2, 3, 2);
+  ctx.fillStyle = SKIN; if (a.dir !== 'side') ctx.fillRect(-8, -2, 3, 7); ctx.fillRect(5, -2, 3, 7);
+  ctx.fillStyle = '#5a3a22'; if (a.dir !== 'side') ctx.fillRect(-8, 2, 3, 2); ctx.fillRect(5, 2, 3, 2);
   // 胴（革ベスト）＋肩当て＋ベルト
   ctx.fillStyle = VEST; ctx.fillRect(-6, -4, 12, 9);
   ctx.fillStyle = VEST_SH; ctx.fillRect(-6, 3, 12, 2);
